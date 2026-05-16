@@ -1,0 +1,20 @@
+[package]
+name = "tapo-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "Spike / diagnostic CLI for the cloud-free Tapo KLAP client"
+
+[[bin]]
+name = "tapo-cli"
+path = "src/main.rs"
+
+[dependencies]
+tapo-proto = { path = "../tapo-proto" }
+tokio.workspace = true
+clap.workspace = true
+anyhow.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

@@ -1,0 +1,33 @@
+# Copy this file to `tapo-config.toml` (same folder where you run the app) and
+# fill in your values. `tapo-config.toml` is gitignored.
+#
+# IMPORTANT (one-time, required by the bulb firmware):
+#   1. Open the official Tapo app -> your account (person icon) ->
+#      "Third-Party Services" / "Tapo Lab -> Third-Party Compatibility" -> ON.
+#      Without this the bulb returns HTTP 403 on the local handshake and NOTHING
+#      can control it locally. After enabling, all control here is 100% LAN.
+#   2. Put the TP-Link account email/password the bulb is bound to below.
+#      These are used ONLY locally to derive the auth hash; no cloud calls.
+#   3. (Recommended) Block the bulb's WAN access on your router (MAC
+#      3C-6A-D2-7A-13-3E) so a cloud re-bind can't overwrite local settings.
+
+[device]
+host = "192.168.1.226"
+username = "your-tplink-account@email.com"
+password = "your-tplink-account-password"
+# "klap", "passthrough", or omit/empty for auto-detection.
+# This bulb's firmware was detected as KLAP (with the 403 gate above).
+protocol = ""
+
+[api]
+# Embedded local API server for future plugins (VLC/PotPlayer ambilight, music).
+enabled = true
+bind = "127.0.0.1"
+port = 7755
+
+[stream]
+# The KLAP round-trip on LAN is ~30-150 ms, so realistic sustained update rate
+# is ~5-15 Hz, not 60 fps. The pipeline coalesces (drops intermediate frames)
+# and smooths. Tune to taste.
+max_hz = 12.0
+smoothing = 0.5
