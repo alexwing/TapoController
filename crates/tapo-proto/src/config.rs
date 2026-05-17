@@ -130,8 +130,12 @@ impl TapoConfig {
     }
 
     pub fn save(&self, path: impl AsRef<Path>) -> Result<()> {
+        let path = path.as_ref();
         let text = toml::to_string_pretty(self)
             .map_err(|e| TapoError::InvalidParam(format!("serialize config: {e}")))?;
+        if let Some(parent) = path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
         std::fs::write(path, text)
             .map_err(|e| TapoError::InvalidParam(format!("write config: {e}")))
     }

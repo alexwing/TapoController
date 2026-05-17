@@ -35,9 +35,13 @@ fn effective_alpha(mode: &str, smoothing: f64) -> f64 {
     }
 }
 
-/// Find `tapo-config.toml`: explicit `TAPO_CONFIG` env, else the first
-/// existing one walking up from the cwd (handles `tauri dev` running from
-/// `src-tauri/`), else create it in the cwd.
+/// Resolve `tapo-config.toml`:
+/// 1. `TAPO_CONFIG` env (explicit override).
+/// 2. An existing file walking up from the cwd — dev convenience so running
+///    from the repo / `tauri dev` keeps using the repo config.
+/// 3. Otherwise the per-user app-data dir (`%APPDATA%\TapoController` on
+///    Windows). The install dir / Start-Menu cwd is not writable, which is why
+///    credentials weren't persisting in the packaged build.
 fn resolve_config_path() -> PathBuf {
     if let Ok(p) = std::env::var("TAPO_CONFIG") {
         return PathBuf::from(p);
@@ -54,7 +58,16 @@ fn resolve_config_path() -> PathBuf {
             None => break,
         }
     }
-    cwd.join("tapo-config.toml")
+    // Installed app: persist in a writable per-user location.
+    let base = std::env::var("APPDATA")
+        .ok()
+        .or_else(|| std::env::var("XDG_CONFIG_HOME").ok())
+        .or_else(|| std::env::var("HOME").ok())
+        .map(PathBuf::from)
+        .unwrap_or(cwd);
+    let app_dir = base.join("TapoController");
+    let _ = std::fs::create_dir_all(&app_dir);
+    app_dir.join("tapo-config.toml")
 }
 
 fn build_service(cfg: &TapoConfig) -> Arc<ControlService> {
