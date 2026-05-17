@@ -33,7 +33,12 @@
       "icons/128x128@2x.png",
       "icons/icon.png",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "certificateThumbprint": "442026C9E5268EB0169F61D6A89B7F9C1C151189",
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com"
+    }
   },
   "plugins": {}
 }
