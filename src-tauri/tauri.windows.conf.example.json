@@ -1,0 +1,13 @@
+{
+  "//": "Copy this to tauri.windows.conf.json (gitignored) to enable Windows",
+  "//2": "code-signing. Tauri 2 auto-merges tauri.windows.conf.json over",
+  "//3": "tauri.conf.json on Windows builds only, keeping signing local.",
+  "$schema": "https://schema.tauri.app/config/2",
+  "bundle": {
+    "windows": {
+      "certificateThumbprint": "YOUR_CERT_SHA1_THUMBPRINT",
+      "digestAlgorithm": "sha256",
+      "timestampUrl": "http://timestamp.digicert.com"
+    }
+  }
+}

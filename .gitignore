@@ -4,4 +4,5 @@ node_modules
 dist
 .DS_Store
 tapo-config.toml
+src-tauri/tauri.windows.conf.json
 *.log
