@@ -1,4 +1,8 @@
-# TapoController
+<p align="center">
+  <img src="docs/icon.png" width="140" alt="TapoController logo" />
+</p>
+
+<h1 align="center">TapoController</h1>
 
 **100% local control (no cloud) of a TP‑Link Tapo L530 smart bulb** — desktop
 app (Tauri 2 + React) with an own, reverse‑engineered implementation of the
