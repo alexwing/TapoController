@@ -19,6 +19,11 @@ const ASSETS = [
     path: "target/release/bundle/msi/TapoController_0.1.0_x64_en-US.msi",
     name: "TapoController_0.1.0_x64_en-US.msi",
   },
+  {
+    // Portable standalone executable (no installer).
+    path: "target/release/tapo-controller.exe",
+    name: "TapoController_0.1.0_x64_standalone.exe",
+  },
 ];
 
 const body = [
