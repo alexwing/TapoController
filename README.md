@@ -51,15 +51,34 @@ Grab the latest from **[Releases](https://github.com/alexwing/TapoController/rel
 > The binaries are **unsigned**, so Windows SmartScreen shows an
 > "unknown publisher" warning the first time → *More info* → *Run anyway*.
 
-### One‑time requirement (enforced by the bulb firmware)
+### One‑time setup in the Tapo mobile app (Android / iOS)
 
-Recent L530 firmware ships with the **local API disabled**. Enable it **once**
-in the official Tapo mobile app:
+The bulb only accepts local control after it has been onboarded with the Tapo
+app **and** the local API has been enabled there. This is enforced by the
+bulb's firmware — there is no software way around it. You only do this **once**.
 
-> **Me / account icon → Third‑Party Services (a.k.a. "Tapo Lab →
-> Third‑Party Compatibility") → ON**
+1. Install **Tapo** ([Android](https://play.google.com/store/apps/details?id=com.tplink.iot) /
+   [iOS](https://apps.apple.com/app/tp-link-tapo/id1472718009)) and sign in
+   (a free TP‑Link account is required just for setup).
+2. **Add the bulb**: tap **+** → *Add Device* → *Bulbs* → follow the pairing
+   (the bulb must end up connected to your **2.4 GHz Wi‑Fi**). Note its IP
+   (your router's client list, or in the app: device → Settings → Device Info).
+3. **Enable local/third‑party access**. Open the app's account tab and turn the
+   setting **ON**. The exact label/location varies by app version — look for
+   one of these:
+   - **Me** (bottom‑right) → **Tapo Lab** → **Third‑Party Compatibility** → ON
+   - or **Me** → **Third‑Party Services** / **Local Access** → ON
+   - (older builds: Settings → *Allow local control*)
+4. Keep the same TP‑Link account credentials handy — you'll enter them once in
+   TapoController's **Settings** tab (they're used only locally to derive the
+   auth hash; never sent to any cloud).
 
-After that, all control is local — no cloud, no internet needed.
+> If it was already paired before, you only need step 3. If TapoController's
+> **Diagnose** says `KlapGatedOff`, step 3 is not enabled yet (toggle it
+> OFF→ON and retry). Tip: after this, block the bulb's internet/WAN access on
+> your router so a cloud re‑bind can't disable local access again.
+
+After that, **all control is 100% local** — no cloud, no internet needed.
 
 ### First run
 
