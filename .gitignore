@@ -6,3 +6,6 @@ dist
 tapo-config.toml
 src-tauri/tauri.windows.conf.json
 *.log
+src-tauri/icons/android/
+src-tauri/icons/ios/
+src-tauri/icons/icon.icns
