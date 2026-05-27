@@ -4,7 +4,13 @@ import { readFileSync, statSync } from "node:fs";
 
 const TOKEN = process.env.GH_TOKEN;
 const REPO = "alexwing/TapoController";
-const TAG = "v0.1.0";
+// Version comes from tauri.conf.json so a bump needs no edits here.
+const VERSION = JSON.parse(
+  readFileSync("src-tauri/tauri.conf.json", "utf8")
+).version;
+const TAG = `v${VERSION}`;
+// Optional release notes: env RELEASE_NOTES or notes/<tag>.md.
+const NOTES = process.env.RELEASE_NOTES;
 if (!TOKEN) {
   console.error("NO_TOKEN");
   process.exit(1);
@@ -12,30 +18,30 @@ if (!TOKEN) {
 
 const ASSETS = [
   {
-    path: "target/release/bundle/nsis/TapoController_0.1.0_x64-setup.exe",
-    name: "TapoController_0.1.0_x64-setup.exe",
+    path: `target/release/bundle/nsis/TapoController_${VERSION}_x64-setup.exe`,
+    name: `TapoController_${VERSION}_x64-setup.exe`,
   },
   {
-    path: "target/release/bundle/msi/TapoController_0.1.0_x64_en-US.msi",
-    name: "TapoController_0.1.0_x64_en-US.msi",
+    path: `target/release/bundle/msi/TapoController_${VERSION}_x64_en-US.msi`,
+    name: `TapoController_${VERSION}_x64_en-US.msi`,
   },
   {
     // Portable standalone executable (no installer).
     path: "target/release/tapo-controller.exe",
-    name: "TapoController_0.1.0_x64_standalone.exe",
+    name: `TapoController_${VERSION}_x64_standalone.exe`,
   },
 ];
 
-const body = [
-  "TapoController 0.1.0 — 100% local control (no cloud) of a Tapo L530 bulb.",
+const body = NOTES || [
+  `TapoController ${VERSION} — 100% local control (no cloud) of a Tapo L530 bulb.`,
   "",
   "- Desktop app (Tauri 2 + React) with an own reverse-engineered Tapo protocol (KLAP).",
   "- Smooth animated mode (bulb's native effect) and screen-capture Ambilight",
   "  (PotPlayer/VLC/any player): monitor selector, fade/instant, fps, brightness cap.",
   "- Local API (REST + WebSocket) for plugins. Windows tray. 3-tab UI + ES/EN i18n.",
   "",
-  "Windows x64 installers (unsigned: SmartScreen will warn the first time →",
-  "More info → Run anyway).",
+  "Windows x64 installers, Authenticode-signed (self-signed: SmartScreen will warn",
+  "the first time → More info → Run anyway).",
   "",
   "One-time requirement: enable “Third-Party Services” once in the Tapo app.",
 ].join("\n");

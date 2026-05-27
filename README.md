@@ -11,7 +11,8 @@ Tapo local protocol (KLAP), a smooth on‑device animated mode, a screen‑captu
 plugins.
 
 No third‑party SDK and no TP‑Link cloud during operation: every command goes
-straight to the bulb on your LAN.
+straight to the bulb on your LAN. It can also **auto‑detect** the bulb's IP on
+your network.
 
 <p align="center">
   <img src="docs/capture02.png" width="320" alt="Normal tab" />
@@ -144,6 +145,9 @@ browsers, games, anything.
 ### Settings tab
 
 - **Connection**: host, account user/password, protocol, **Diagnose**.
+  - **Detect bulbs**: scans your LAN and lists Tapo bulbs found; the host
+    field is an editable combo — pick a detected IP or type one. Handy when
+    DHCP changes the bulb's address.
 - **Local API**: enable/disable the embedded server, bind address and port.
 - **Language**: *System* (auto‑detect), *Spanish* or *English*.
 - **Save & apply** persists everything (changing API port/bind needs an app
