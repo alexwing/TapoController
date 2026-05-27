@@ -6,7 +6,10 @@ export default defineConfig({
   plugins: [react()],
   clearScreen: false,
   server: {
-    port: 1420,
+    // 1420 falls in a Windows reserved port range (Hyper-V/WSL) -> EACCES.
+    // 5173 is outside the excluded ranges; bind IPv4 to avoid ::1 issues.
+    host: "127.0.0.1",
+    port: 5173,
     strictPort: true,
   },
   build: {
