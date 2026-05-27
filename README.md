@@ -180,10 +180,14 @@ Requirements: Rust (stable), Node 18+, and the Tauri prerequisites for your OS.
 
 ```sh
 npm install
-npm run tauri dev      # run in development
-npm run tauri build    # produce installers + standalone exe
+npm run app:dev        # run the desktop app in development (Tauri + Vite)
+npm run app:build      # full build: installers (NSIS + MSI) + standalone exe
+npm run icons          # regenerate icons from docs/icon.png
 cargo test --workspace # run the test suite
 ```
+
+(`app:dev`/`app:build` are aliases for `tauri dev`/`tauri build`, which run the
+Vite dev/build steps automatically.)
 
 Project layout:
 
