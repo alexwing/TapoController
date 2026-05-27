@@ -411,14 +411,62 @@ function SettingsTab({
 }) {
   const [l, setL] = useState<UiConfig>(cfg);
   const upd = (p: Partial<UiConfig>) => setL((x) => ({ ...x, ...p }));
+  const [found, setFound] = useState<import("./tauri").DiscoveredBulb[]>([]);
+  const [detecting, setDetecting] = useState(false);
+  const [detectMsg, setDetectMsg] = useState<string | null>(null);
+
+  const detect = async () => {
+    setDetecting(true);
+    setDetectMsg(null);
+    try {
+      const list = await api.discoverBulbs();
+      setFound(list);
+      if (list.length === 0) setDetectMsg(t("settings.detect.none"));
+      else if (list.length === 1) upd({ host: list[0].ip });
+    } catch (e: any) {
+      setDetectMsg(e.message ?? String(e));
+    } finally {
+      setDetecting(false);
+    }
+  };
+
+  const label = (b: import("./tauri").DiscoveredBulb) =>
+    [b.ip, b.nickname, b.model].filter(Boolean).join(" — ");
 
   return (
     <section className="card settings">
       <h2>{t("settings.connection")}</h2>
       <label>
         {t("settings.host")}
-        <input value={l.host} onChange={(e) => upd({ host: e.target.value })} />
+        <input
+          list="discovered-bulbs"
+          value={l.host}
+          onChange={(e) => upd({ host: e.target.value })}
+        />
+        <datalist id="discovered-bulbs">
+          {found.map((b) => (
+            <option key={b.ip} value={b.ip}>
+              {label(b)}
+            </option>
+          ))}
+        </datalist>
       </label>
+      <button className="ghost small" onClick={detect} disabled={detecting}>
+        {detecting ? t("settings.detecting") : t("settings.detect")}
+      </button>
+      {detectMsg && <p className="hint">{detectMsg}</p>}
+      {found.length > 0 && (
+        <ul className="found">
+          {found.map((b) => (
+            <li key={b.ip}>
+              <button className="linklike" onClick={() => upd({ host: b.ip })}>
+                {label(b)}
+                {b.klap ? "" : " (?)"}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <label>
         {t("settings.user")}
         <input

@@ -38,6 +38,8 @@ struct Cli {
 enum Cmd {
     /// Diagnose connectivity/firmware gate (no credentials required).
     Doctor,
+    /// Scan the local network for Tapo devices (no credentials required).
+    Discover,
     /// Read and print device info (raw JSON).
     Info,
     /// Turn the bulb on or off.
@@ -79,6 +81,18 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
+    if let Cmd::Discover = cli.cmd {
+        eprintln!("[info] scanning local /24…");
+        let found = tapo_proto::discover().await;
+        if found.is_empty() {
+            println!("(no Tapo devices found)");
+        }
+        for d in found {
+            println!("{}  klap={}", d.ip, d.klap);
+        }
+        return Ok(());
+    }
+
     // `doctor` needs no credentials and no session.
     if let Cmd::Doctor = cli.cmd {
         let d = tapo_proto::diagnose(&cli.host).await;
@@ -107,7 +121,7 @@ async fn main() -> Result<()> {
     eprintln!("[ok] session established ({:?})", dev.protocol());
 
     match cli.cmd {
-        Cmd::Doctor => unreachable!("handled before session setup"),
+        Cmd::Doctor | Cmd::Discover => unreachable!("handled before session setup"),
         Cmd::Info => {
             let raw = dev.get_device_info_raw().await?;
             println!("{}", serde_json::to_string_pretty(&raw)?);

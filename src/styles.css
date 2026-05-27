@@ -156,6 +156,22 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   padding: 0;
 }
 
+.found {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+}
+.found li { margin: 2px 0; }
+.linklike {
+  background: #16131f;
+  border: 1px solid #34304a;
+  color: var(--fg);
+  width: 100%;
+  text-align: left;
+  font-size: 13px;
+  padding: 7px 10px;
+}
+
 .settings h2 {
   font-size: 14px;
   margin: 16px 0 0;

@@ -8,6 +8,7 @@
 pub mod config;
 pub mod device;
 pub mod diagnose;
+pub mod discover;
 pub mod error;
 pub mod http;
 pub mod klap;
@@ -16,6 +17,7 @@ pub mod service;
 
 pub use config::{ApiConfig, DeviceConfig, StreamConfig, TapoConfig, UiConfigFile};
 pub use diagnose::{diagnose, Diagnosis, Verdict};
+pub use discover::{discover, Discovered};
 pub use device::{detect_protocol, DeviceInfo, Protocol, TapoDevice};
 pub use error::{Result, TapoError};
 pub use service::ControlService;

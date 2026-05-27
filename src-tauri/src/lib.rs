@@ -219,6 +219,51 @@ async fn run_diagnose(state: tauri::State<'_, AppState>) -> CmdResult<Diagnosis>
     Ok(diagnose(&host).await)
 }
 
+#[derive(Serialize)]
+pub struct DiscoveredBulb {
+    pub ip: String,
+    pub klap: bool,
+    pub nickname: Option<String>,
+    pub model: Option<String>,
+}
+
+#[tauri::command]
+async fn discover_bulbs(state: tauri::State<'_, AppState>) -> CmdResult<Vec<DiscoveredBulb>> {
+    let found = tapo_proto::discover().await;
+    // Best-effort enrich with nickname/model if credentials are configured.
+    let (user, pass) = {
+        let c = state.cfg.lock().await;
+        (c.device.username.clone(), c.device.password.clone())
+    };
+
+    let mut out = Vec::with_capacity(found.len());
+    for d in found {
+        let (mut nickname, mut model) = (None, None);
+        if !user.is_empty() && d.klap {
+            let probe = tokio::time::timeout(std::time::Duration::from_secs(4), async {
+                let dev = tapo_proto::TapoDevice::connect(&d.ip, &user, &pass).await?;
+                dev.get_device_info().await
+            })
+            .await;
+            if let Ok(Ok(info)) = probe {
+                if !info.nickname.is_empty() {
+                    nickname = Some(info.nickname);
+                }
+                if !info.model.is_empty() {
+                    model = Some(info.model);
+                }
+            }
+        }
+        out.push(DiscoveredBulb {
+            ip: d.ip,
+            klap: d.klap,
+            nickname,
+            model,
+        });
+    }
+    Ok(out)
+}
+
 #[tauri::command]
 async fn get_state(state: tauri::State<'_, AppState>) -> CmdResult<DeviceInfo> {
     let svc = current(&state.svc).await;
@@ -404,6 +449,7 @@ pub fn run() {
             get_config,
             save_config,
             run_diagnose,
+            discover_bulbs,
             get_state,
             set_power,
             set_brightness,

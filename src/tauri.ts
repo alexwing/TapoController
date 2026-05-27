@@ -25,6 +25,13 @@ export interface MonitorInfo {
   primary: boolean;
 }
 
+export interface DiscoveredBulb {
+  ip: string;
+  klap: boolean;
+  nickname: string | null;
+  model: string | null;
+}
+
 export interface DeviceInfo {
   device_id: string;
   model: string;
@@ -61,6 +68,7 @@ export const api = {
   getConfig: () => call<UiConfig>("get_config"),
   saveConfig: (cfg: UiConfig) => call<void>("save_config", { new: cfg }),
   diagnose: () => call<Diagnosis>("run_diagnose"),
+  discoverBulbs: () => call<DiscoveredBulb[]>("discover_bulbs"),
   getState: () => call<DeviceInfo>("get_state"),
   setPower: (on: boolean) => call<void>("set_power", { on }),
   setBrightness: (value: number) => call<void>("set_brightness", { value }),
