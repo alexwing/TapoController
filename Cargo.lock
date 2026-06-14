@@ -4553,7 +4553,7 @@ dependencies = [
 
 [[package]]
 name = "tapo-cli"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "anyhow",
  "clap",
@@ -4566,7 +4566,7 @@ dependencies = [
 
 [[package]]
 name = "tapo-controller"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "axum",
  "futures-util",
@@ -4587,7 +4587,7 @@ dependencies = [
 
 [[package]]
 name = "tapo-proto"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
  "aes",
  "base64 0.22.1",
