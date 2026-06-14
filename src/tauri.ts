@@ -77,6 +77,8 @@ export const api = {
   setRgb: (r: number, g: number, b: number) =>
     call<void>("set_rgb", { r, g, b }),
   setColorTemp: (kelvin: number) => call<void>("set_color_temp", { kelvin }),
+  setWhite: (kelvin: number, brightness: number) =>
+    call<void>("set_white", { kelvin, brightness }),
   submitStreamColor: (r: number, g: number, b: number) =>
     call<void>("submit_stream_color", { r, g, b }),
   setAnimation: (on: boolean, speed?: number) =>

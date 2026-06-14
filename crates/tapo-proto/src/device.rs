@@ -297,6 +297,26 @@ impl TapoDevice {
             .await
     }
 
+    /// Set a **white** at a given temperature and brightness in one request.
+    ///
+    /// This is the bright path: the L530's full output (~806 lm) is only
+    /// reachable in white mode (dedicated white LEDs). Color mode
+    /// (`set_hue_saturation`) uses the dimmer RGB LEDs and cannot match it —
+    /// which is why warm/cool presets must use this, not an RGB approximation.
+    pub async fn set_white(&self, kelvin: u16, brightness: u8) -> Result<()> {
+        if !(2500..=6500).contains(&kelvin) {
+            return Err(TapoError::InvalidParam(format!(
+                "color_temp must be 2500..=6500 K, got {kelvin}"
+            )));
+        }
+        self.set(json!({
+            "device_on": true,
+            "color_temp": kelvin,
+            "brightness": brightness.clamp(1, 100),
+        }))
+        .await
+    }
+
     /// Convenience: set an sRGB color (0..=255 per channel). Converts to HSV.
     pub async fn set_rgb(&self, r: u8, g: u8, b: u8) -> Result<()> {
         let (h, s, _v) = rgb_to_hsv(r, g, b);

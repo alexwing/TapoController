@@ -58,6 +58,11 @@ struct TempBody {
     kelvin: u16,
 }
 #[derive(Deserialize)]
+struct WhiteBody {
+    kelvin: u16,
+    brightness: u8,
+}
+#[derive(Deserialize)]
 struct Frame {
     r: u8,
     g: u8,
@@ -136,6 +141,16 @@ async fn color_temp(
     }
 }
 
+async fn white(
+    State(s): State<SharedSvc>,
+    Json(b): Json<WhiteBody>,
+) -> impl IntoResponse {
+    match svc(&s).await.set_white(b.kelvin, b.brightness).await {
+        Ok(()) => ok().into_response(),
+        Err(e) => err(e).into_response(),
+    }
+}
+
 async fn animation(
     State(s): State<SharedSvc>,
     Json(b): Json<AnimBody>,
@@ -187,6 +202,7 @@ pub async fn serve(bind: String, port: u16, shared: SharedSvc) -> std::io::Resul
         .route("/brightness", post(brightness))
         .route("/color", post(color))
         .route("/color_temp", post(color_temp))
+        .route("/white", post(white))
         .route("/animation", post(animation))
         .route("/stream", get(stream_ws))
         .layer(CorsLayer::permissive())

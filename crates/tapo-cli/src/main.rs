@@ -62,6 +62,8 @@ enum Cmd {
     Rgb { r: u8, g: u8, b: u8 },
     /// Set color temperature in Kelvin (2500..=6500).
     Temp { kelvin: u16 },
+    /// Set a white at a temperature (K) and brightness (1..=100), max-lumen path.
+    White { kelvin: u16, brightness: u8 },
     /// Call any method directly. `params` is optional JSON.
     Raw {
         method: String,
@@ -146,6 +148,10 @@ async fn main() -> Result<()> {
         Cmd::Temp { kelvin } => {
             dev.set_color_temp(kelvin).await?;
             eprintln!("[ok] color_temp -> {kelvin}K");
+        }
+        Cmd::White { kelvin, brightness } => {
+            dev.set_white(kelvin, brightness).await?;
+            eprintln!("[ok] white -> {kelvin}K @ {brightness}%");
         }
         Cmd::Raw { method, params } => {
             let p = if params.trim().is_empty() {

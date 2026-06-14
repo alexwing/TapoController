@@ -20,6 +20,7 @@ enum Action {
     Hsv(u16, u8),
     ColorBri(u16, u8, u8),
     ColorTemp(u16),
+    White(u16, u8),
 }
 
 impl TapoError {
@@ -146,6 +147,7 @@ impl ControlService {
             Action::Hsv(h, s) => dev.set_hue_saturation(h, s).await,
             Action::ColorBri(h, s, b) => dev.set_color_brightness(h, s, b).await,
             Action::ColorTemp(k) => dev.set_color_temp(k).await,
+            Action::White(k, b) => dev.set_white(k, b).await,
         }
     }
 
@@ -179,6 +181,9 @@ impl ControlService {
     }
     pub async fn set_color_temp(&self, k: u16) -> Result<()> {
         self.exec(Action::ColorTemp(k)).await
+    }
+    pub async fn set_white(&self, kelvin: u16, brightness: u8) -> Result<()> {
+        self.exec(Action::White(kelvin, brightness)).await
     }
     pub async fn set_rgb(&self, r: u8, g: u8, b: u8) -> Result<()> {
         let (h, s, _) = crate::device::rgb_to_hsv(r, g, b);

@@ -235,6 +235,35 @@ function NormalTab({
         />
       </label>
 
+      <label style={{ marginBottom: 6 }}>{t("whites")}</label>
+      <div className="row whites">
+        <button
+          className="white-preset warm"
+          disabled={busy}
+          onClick={() => {
+            setAnim(false);
+            setKelvin(2700);
+            setBright(100);
+            run(() => api.setWhite(2700, 100));
+          }}
+        >
+          ☀ {t("white.warm")}
+        </button>
+        <button
+          className="white-preset cool"
+          disabled={busy}
+          onClick={() => {
+            setAnim(false);
+            setKelvin(6500);
+            setBright(100);
+            run(() => api.setWhite(6500, 100));
+          }}
+        >
+          ❄ {t("white.cool")}
+        </button>
+      </div>
+
+      <label style={{ marginBottom: 6 }}>{t("presets")}</label>
       <div className="presets">
         {PRESETS.map((p) => (
           <button

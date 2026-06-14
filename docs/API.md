@@ -19,6 +19,7 @@ externos (VLC/PotPlayer ambilight, sincronía con música, automatizaciones).
 | POST   | `/brightness`  | `{"value": 1..100}`                      | Brillo |
 | POST   | `/color`       | `{"hue":0..360,"saturation":0..100}` **o** `{"r":0..255,"g":..,"b":..}` | Color |
 | POST   | `/color_temp`  | `{"kelvin": 2500..6500}`                 | Blanco cálido/frío |
+| POST   | `/white`       | `{"kelvin":2500..6500,"brightness":1..100}` | Blanco a máx. lúmenes (LEDs blancos) |
 | POST   | `/animation`   | `{"on":true,"speed":1..100}`             | Modo animado (arcoíris) |
 | GET    | `/stream`      | (WebSocket upgrade)                      | Flujo de color alta frecuencia |
 

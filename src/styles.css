@@ -143,10 +143,27 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .row.power button { flex: 1; }
 
+.row.whites {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.white-preset {
+  flex: 1;
+  color: #1a1726;
+  font-weight: 600;
+}
+.white-preset.warm {
+  background: linear-gradient(180deg, #fff3e0, #ffd9a0);
+}
+.white-preset.cool {
+  background: linear-gradient(180deg, #ffffff, #d4e8ff);
+}
+
 .presets {
   display: flex;
   gap: 8px;
-  margin-top: 16px;
+  margin-top: 6px;
 }
 .presets button {
   width: 38px;

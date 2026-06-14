@@ -308,6 +308,15 @@ async fn set_color_temp(state: tauri::State<'_, AppState>, kelvin: u16) -> CmdRe
 }
 
 #[tauri::command]
+async fn set_white(
+    state: tauri::State<'_, AppState>,
+    kelvin: u16,
+    brightness: u8,
+) -> CmdResult<()> {
+    Ok(current(&state.svc).await.set_white(kelvin, brightness).await?)
+}
+
+#[tauri::command]
 async fn submit_stream_color(
     state: tauri::State<'_, AppState>,
     r: u8,
@@ -456,6 +465,7 @@ pub fn run() {
             set_color,
             set_rgb,
             set_color_temp,
+            set_white,
             submit_stream_color,
             set_animation,
             get_animation,
