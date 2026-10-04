@@ -110,10 +110,65 @@ impl Default for UiConfigFile {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BulbConfig {
+    pub id: String,
+    pub name: String,
+    pub host: String,
+    #[serde(default)]
+    pub mac: String,
+    #[serde(default)]
+    pub username: Option<String>,
+    #[serde(default)]
+    pub password: Option<String>,
+    #[serde(default)]
+    pub protocol: Option<String>,
+    #[serde(default = "default_bulb_enabled")]
+    pub enabled: bool,
+}
+
+fn default_bulb_enabled() -> bool {
+    true
+}
+
+impl BulbConfig {
+    pub fn effective_credentials<'a>(
+        &'a self,
+        default_user: &'a str,
+        default_pass: &'a str,
+    ) -> (&'a str, &'a str) {
+        let user = self
+            .username
+            .as_deref()
+            .filter(|s| !s.trim().is_empty())
+            .unwrap_or(default_user);
+        let pass = self
+            .password
+            .as_deref()
+            .filter(|s| !s.trim().is_empty())
+            .unwrap_or(default_pass);
+        (user, pass)
+    }
+}
+
+fn default_active_bulb() -> String {
+    "all".into()
+}
+
+fn default_sync_all() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TapoConfig {
     #[serde(default)]
     pub device: DeviceConfig,
+    #[serde(default)]
+    pub bulbs: Vec<BulbConfig>,
+    #[serde(default = "default_active_bulb")]
+    pub active_bulb: String,
+    #[serde(default = "default_sync_all")]
+    pub sync_all: bool,
     #[serde(default)]
     pub api: ApiConfig,
     #[serde(default)]
@@ -123,10 +178,36 @@ pub struct TapoConfig {
 }
 
 impl TapoConfig {
+    pub fn normalize_bulbs(&mut self) {
+        if self.bulbs.is_empty() {
+            let host = if self.device.host.is_empty() {
+                "192.168.1.226".into()
+            } else {
+                self.device.host.clone()
+            };
+            self.bulbs.push(BulbConfig {
+                id: "bulb-1".into(),
+                name: "Bombilla 1".into(),
+                host,
+                mac: String::new(),
+                username: None,
+                password: None,
+                protocol: self.device.protocol.clone(),
+                enabled: true,
+            });
+        }
+        if self.active_bulb.is_empty() {
+            self.active_bulb = "all".into();
+        }
+    }
+
     pub fn load(path: impl AsRef<Path>) -> Result<Self> {
         let text = std::fs::read_to_string(path)
             .map_err(|e| TapoError::InvalidParam(format!("read config: {e}")))?;
-        toml::from_str(&text).map_err(|e| TapoError::InvalidParam(format!("parse config: {e}")))
+        let mut cfg: Self = toml::from_str(&text)
+            .map_err(|e| TapoError::InvalidParam(format!("parse config: {e}")))?;
+        cfg.normalize_bulbs();
+        Ok(cfg)
     }
 
     pub fn save(&self, path: impl AsRef<Path>) -> Result<()> {
@@ -146,9 +227,11 @@ impl TapoConfig {
         if p.exists() {
             Self::load(p)
         } else {
-            let cfg = Self::default();
+            let mut cfg = Self::default();
+            cfg.normalize_bulbs();
             cfg.save(p)?;
             Ok(cfg)
         }
     }
 }
+

@@ -1,10 +1,35 @@
 import { invoke } from "@tauri-apps/api/core";
 
+export interface BulbConfig {
+  id: string;
+  name: string;
+  host: string;
+  mac: string;
+  username?: string | null;
+  password?: string | null;
+  protocol?: string | null;
+  enabled: boolean;
+}
+
+export interface BulbStateSummary {
+  id: string;
+  name: string;
+  host: string;
+  mac: string;
+  enabled: boolean;
+  online: boolean;
+  state: DeviceInfo | null;
+  error: string | null;
+}
+
 export interface UiConfig {
   host: string;
   username: string;
   password: string;
   protocol: string | null;
+  bulbs: BulbConfig[];
+  active_bulb: string;
+  sync_all: boolean;
   api_enabled: boolean;
   api_bind: string;
   api_port: number;
@@ -27,6 +52,7 @@ export interface MonitorInfo {
 
 export interface DiscoveredBulb {
   ip: string;
+  mac?: string | null;
   klap: boolean;
   nickname: string | null;
   model: string | null;
@@ -67,7 +93,27 @@ export interface Diagnosis {
 export const api = {
   getConfig: () => call<UiConfig>("get_config"),
   saveConfig: (cfg: UiConfig) => call<void>("save_config", { new: cfg }),
-  diagnose: () => call<Diagnosis>("run_diagnose"),
+  getAllBulbs: () => call<BulbStateSummary[]>("get_all_bulbs"),
+  setActiveBulb: (target: string) =>
+    call<void>("set_active_bulb", { target }),
+  setSyncAll: (sync: boolean) => call<void>("set_sync_all", { sync }),
+  relocateBulb: (bulbId: string) =>
+    call<string>("relocate_bulb", { bulbId }),
+  setBulbPower: (bulbId: string, on: boolean) =>
+    call<void>("set_bulb_power", { bulbId, on }),
+  setBulbBrightness: (bulbId: string, value: number) =>
+    call<void>("set_bulb_brightness", { bulbId, value }),
+  setBulbColor: (bulbId: string, hue: number, saturation: number) =>
+    call<void>("set_bulb_color", { bulbId, hue, saturation }),
+  setBulbRgb: (bulbId: string, r: number, g: number, b: number) =>
+    call<void>("set_bulb_rgb", { bulbId, r, g, b }),
+  setBulbColorTemp: (bulbId: string, kelvin: number) =>
+    call<void>("set_bulb_color_temp", { bulbId, kelvin }),
+  setBulbWhite: (bulbId: string, kelvin: number, brightness: number) =>
+    call<void>("set_bulb_white", { bulbId, kelvin, brightness }),
+  diagnose: (host?: string) =>
+    call<Diagnosis>("run_diagnose", { host: host ?? null }),
+
   discoverBulbs: () => call<DiscoveredBulb[]>("discover_bulbs"),
   getState: () => call<DeviceInfo>("get_state"),
   setPower: (on: boolean) => call<void>("set_power", { on }),
@@ -104,6 +150,7 @@ export const api = {
       maxHz,
       maxBrightness,
     }),
+  openHelpWindow: () => call<void>("open_help_window"),
 };
 
 export function hexToRgb(hex: string): [number, number, number] {

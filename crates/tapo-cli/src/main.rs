@@ -22,6 +22,10 @@ struct Cli {
     #[arg(long, default_value = "192.168.1.226")]
     host: String,
 
+    /// Device MAC address (for auto-finding relocated IP).
+    #[arg(long, env = "TAPO_MAC")]
+    mac: Option<String>,
+
     /// Local device username (not needed for `doctor`).
     #[arg(short = 'u', long, env = "TAPO_USER")]
     user: Option<String>,
@@ -83,6 +87,7 @@ async fn main() -> Result<()> {
 
     let cli = Cli::parse();
 
+
     if let Cmd::Discover = cli.cmd {
         eprintln!("[info] scanning local /24…");
         let found = tapo_proto::discover().await;
@@ -90,7 +95,12 @@ async fn main() -> Result<()> {
             println!("(no Tapo devices found)");
         }
         for d in found {
-            println!("{}  klap={}", d.ip, d.klap);
+            println!(
+                "{}  mac={}  klap={}",
+                d.ip,
+                d.mac.as_deref().unwrap_or("unknown"),
+                d.klap
+            );
         }
         return Ok(());
     }
@@ -112,15 +122,33 @@ async fn main() -> Result<()> {
         _ => anyhow::bail!("this command needs -u/--user and -p/--pass (or TAPO_USER/TAPO_PASS)"),
     };
 
-    let proto = tapo_proto::detect_protocol(&cli.host)
+    let mut host = cli.host.clone();
+    if let Some(ref mac) = cli.mac {
+        let probe = tokio::time::timeout(
+            std::time::Duration::from_millis(1500),
+            tapo_proto::detect_protocol(&host),
+        )
+        .await;
+        if probe.is_err() || probe.as_ref().unwrap().is_err() {
+            eprintln!("[info] host {host} unreachable; searching for MAC {mac}…");
+            if let Some(new_ip) = tapo_proto::resolve_ip_by_mac_with_auth(mac, &user, &pass).await {
+                eprintln!("[info] found relocated IP: {new_ip}");
+                host = new_ip;
+            }
+        }
+    }
+
+
+    let proto = tapo_proto::detect_protocol(&host)
         .await
-        .with_context(|| format!("probing protocol on {}", cli.host))?;
+        .with_context(|| format!("probing protocol on {host}"))?;
     eprintln!("[info] detected protocol: {proto:?}");
 
-    let dev = TapoDevice::connect(&cli.host, &user, &pass)
+    let dev = TapoDevice::connect(&host, &user, &pass)
         .await
-        .with_context(|| format!("connecting/handshaking with {}", cli.host))?;
+        .with_context(|| format!("connecting/handshaking with {host}"))?;
     eprintln!("[ok] session established ({:?})", dev.protocol());
+
 
     match cli.cmd {
         Cmd::Doctor | Cmd::Discover => unreachable!("handled before session setup"),

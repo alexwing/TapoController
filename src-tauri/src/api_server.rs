@@ -1,7 +1,6 @@
 //! Embedded local API server (M3) for future plugins (VLC/PotPlayer ambilight,
 //! music sync, ...). REST for discrete commands + a WebSocket `/stream` for
-//! high-rate color frames. It shares the exact same `ControlService` as the
-//! desktop UI, so rate-limiting/back-pressure are unified.
+//! high-rate color frames. Supports multi-bulb targeting and synchronized mode.
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -40,10 +39,12 @@ fn ok() -> Json<Value> {
 #[derive(Deserialize)]
 struct PowerBody {
     on: bool,
+    bulb_id: Option<String>,
 }
 #[derive(Deserialize)]
 struct BrightnessBody {
     value: u8,
+    bulb_id: Option<String>,
 }
 #[derive(Deserialize)]
 struct ColorBody {
@@ -52,15 +53,18 @@ struct ColorBody {
     r: Option<u8>,
     g: Option<u8>,
     b: Option<u8>,
+    bulb_id: Option<String>,
 }
 #[derive(Deserialize)]
 struct TempBody {
     kelvin: u16,
+    bulb_id: Option<String>,
 }
 #[derive(Deserialize)]
 struct WhiteBody {
     kelvin: u16,
     brightness: u8,
+    bulb_id: Option<String>,
 }
 #[derive(Deserialize)]
 struct Frame {
@@ -72,6 +76,14 @@ struct Frame {
 struct AnimBody {
     on: bool,
     speed: Option<u8>,
+}
+#[derive(Deserialize)]
+struct SyncBody {
+    sync: bool,
+}
+#[derive(Deserialize)]
+struct ActiveBody {
+    target: String,
 }
 
 async fn health() -> impl IntoResponse {
@@ -89,11 +101,46 @@ async fn get_state(State(s): State<SharedSvc>) -> impl IntoResponse {
     }
 }
 
+async fn get_bulbs(State(s): State<SharedSvc>) -> impl IntoResponse {
+    let service = svc(&s).await;
+    let states = service.get_all_states().await;
+    let sync = service.sync_all();
+    let target = service.active_target().await;
+    Json(json!({
+        "ok": true,
+        "bulbs": states,
+        "sync_all": sync,
+        "active_target": target
+    }))
+}
+
+async fn set_sync(
+    State(s): State<SharedSvc>,
+    Json(b): Json<SyncBody>,
+) -> impl IntoResponse {
+    svc(&s).await.set_sync_all(b.sync);
+    ok().into_response()
+}
+
+async fn set_active(
+    State(s): State<SharedSvc>,
+    Json(b): Json<ActiveBody>,
+) -> impl IntoResponse {
+    svc(&s).await.set_active_target(b.target).await;
+    ok().into_response()
+}
+
 async fn power(
     State(s): State<SharedSvc>,
     Json(b): Json<PowerBody>,
 ) -> impl IntoResponse {
-    match svc(&s).await.set_power(b.on).await {
+    let service = svc(&s).await;
+    let res = if let Some(ref id) = b.bulb_id {
+        service.set_bulb_power(id, b.on).await
+    } else {
+        service.set_power(b.on).await
+    };
+    match res {
         Ok(()) => ok().into_response(),
         Err(e) => err(e).into_response(),
     }
@@ -103,7 +150,13 @@ async fn brightness(
     State(s): State<SharedSvc>,
     Json(b): Json<BrightnessBody>,
 ) -> impl IntoResponse {
-    match svc(&s).await.set_brightness(b.value).await {
+    let service = svc(&s).await;
+    let res = if let Some(ref id) = b.bulb_id {
+        service.set_bulb_brightness(id, b.value).await
+    } else {
+        service.set_brightness(b.value).await
+    };
+    match res {
         Ok(()) => ok().into_response(),
         Err(e) => err(e).into_response(),
     }
@@ -114,9 +167,11 @@ async fn color(
     Json(b): Json<ColorBody>,
 ) -> impl IntoResponse {
     let service = svc(&s).await;
-    let res = match (b.hue, b.saturation, b.r, b.g, b.b) {
-        (Some(h), Some(sa), ..) => service.set_hue_saturation(h, sa).await,
-        (_, _, Some(r), Some(g), Some(bl)) => service.set_rgb(r, g, bl).await,
+    let res = match (b.hue, b.saturation, b.r, b.g, b.b, b.bulb_id) {
+        (Some(h), Some(sa), .., Some(id)) => service.set_bulb_hue_saturation(&id, h, sa).await,
+        (Some(h), Some(sa), .., None) => service.set_hue_saturation(h, sa).await,
+        (_, _, Some(r), Some(g), Some(bl), Some(id)) => service.set_bulb_rgb(&id, r, g, bl).await,
+        (_, _, Some(r), Some(g), Some(bl), None) => service.set_rgb(r, g, bl).await,
         _ => {
             return (
                 StatusCode::BAD_REQUEST,
@@ -135,7 +190,13 @@ async fn color_temp(
     State(s): State<SharedSvc>,
     Json(b): Json<TempBody>,
 ) -> impl IntoResponse {
-    match svc(&s).await.set_color_temp(b.kelvin).await {
+    let service = svc(&s).await;
+    let res = if let Some(ref id) = b.bulb_id {
+        service.set_bulb_color_temp(id, b.kelvin).await
+    } else {
+        service.set_color_temp(b.kelvin).await
+    };
+    match res {
         Ok(()) => ok().into_response(),
         Err(e) => err(e).into_response(),
     }
@@ -145,7 +206,13 @@ async fn white(
     State(s): State<SharedSvc>,
     Json(b): Json<WhiteBody>,
 ) -> impl IntoResponse {
-    match svc(&s).await.set_white(b.kelvin, b.brightness).await {
+    let service = svc(&s).await;
+    let res = if let Some(ref id) = b.bulb_id {
+        service.set_bulb_white(id, b.kelvin, b.brightness).await
+    } else {
+        service.set_white(b.kelvin, b.brightness).await
+    };
+    match res {
         Ok(()) => ok().into_response(),
         Err(e) => err(e).into_response(),
     }
@@ -172,9 +239,7 @@ async fn stream_ws(
     ws.on_upgrade(move |socket| handle_stream(socket, s))
 }
 
-/// Each text frame is `{"r":..,"g":..,"b":..}`. We never block the socket:
-/// frames are handed to the service's coalescing pipeline, which drops
-/// intermediate frames and rate-limits to the device's capabilities.
+/// Each text frame is `{"r":..,"g":..,"b":..}`. Frames go to the service coalescing pipeline.
 async fn handle_stream(mut socket: WebSocket, s: SharedSvc) {
     let service = svc(&s).await;
     while let Some(Ok(msg)) = socket.recv().await {
@@ -197,6 +262,9 @@ pub async fn serve(bind: String, port: u16, shared: SharedSvc) -> std::io::Resul
     let app = Router::new()
         .route("/health", get(health))
         .route("/monitors", get(monitors))
+        .route("/bulbs", get(get_bulbs))
+        .route("/sync", post(set_sync))
+        .route("/active", post(set_active))
         .route("/state", get(get_state))
         .route("/power", post(power))
         .route("/brightness", post(brightness))
@@ -230,7 +298,6 @@ mod tests {
             StreamConfig::default(),
         )));
         tokio::spawn(serve("127.0.0.1".into(), 7799, svc));
-        // Give the listener a moment to bind.
         tokio::time::sleep(std::time::Duration::from_millis(300)).await;
 
         let body: serde_json::Value = reqwest::get("http://127.0.0.1:7799/health")
@@ -242,7 +309,6 @@ mod tests {
         assert_eq!(body["ok"], true);
         assert_eq!(body["service"], "tapo-controller");
 
-        // A control call with no credentials must fail gracefully (502), not panic.
         let resp = reqwest::Client::new()
             .post("http://127.0.0.1:7799/power")
             .json(&serde_json::json!({ "on": true }))

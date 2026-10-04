@@ -15,9 +15,14 @@ pub mod klap;
 pub mod passthrough;
 pub mod service;
 
-pub use config::{ApiConfig, DeviceConfig, StreamConfig, TapoConfig, UiConfigFile};
+pub use config::{ApiConfig, BulbConfig, DeviceConfig, StreamConfig, TapoConfig, UiConfigFile};
 pub use diagnose::{diagnose, Diagnosis, Verdict};
-pub use discover::{discover, Discovered};
+pub use discover::{
+    discover, find_ip_by_mac, get_arp_mac, normalize_mac, resolve_ip_by_mac_with_auth, Discovered,
+};
 pub use device::{detect_protocol, DeviceInfo, Protocol, TapoDevice};
 pub use error::{Result, TapoError};
-pub use service::ControlService;
+pub use service::{BulbStateSummary, ControlService};
+
+
+

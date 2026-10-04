@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 
 // Tauri expects a fixed port and should not clear the screen.
 export default defineConfig({
+  base: "./",
   plugins: [react()],
   clearScreen: false,
   server: {

@@ -11,16 +11,37 @@
 #   3. (Recommended) Block the bulb's WAN access on your router (MAC
 #      3C-6A-D2-7A-13-3E) so a cloud re-bind can't overwrite local settings.
 
+# Default / account-level credentials used across bulbs
 [device]
-host = "192.168.1.226"
+host = "192.168.1.177"
 username = "your-tplink-account@email.com"
 password = "your-tplink-account-password"
 # "klap", "passthrough", or omit/empty for auto-detection.
-# This bulb's firmware was detected as KLAP (with the 403 gate above).
 protocol = ""
 
+# Target active bulb: "all" for synchronized control, or a bulb id (e.g. "bulb-1")
+active_bulb = "all"
+# When true, all actions (power, colors, ambilight) apply to all bulbs in sync
+sync_all = true
+
+# Multiple bulbs setup. Each bulb can store its MAC address so if DHCP changes
+# the bulb's IP address, TapoController automatically finds it on the LAN and reconnects!
+[[bulbs]]
+id = "bulb-1"
+name = "Lámpara salón"
+host = "192.168.1.177"
+mac = "3C-6A-D2-7A-13-3E"   # Hardware MAC for auto-reconnection
+enabled = true
+
+# [[bulbs]]
+# id = "bulb-2"
+# name = "Lámpara mesa"
+# host = "192.168.1.178"
+# mac = "3C-6A-D2-7A-13-3F"
+# enabled = true
+
 [api]
-# Embedded local API server for future plugins (VLC/PotPlayer ambilight, music).
+# Embedded local API server for plugins (VLC/PotPlayer ambilight, music).
 enabled = true
 bind = "127.0.0.1"
 port = 7755
@@ -31,3 +52,6 @@ port = 7755
 # and smooths. Tune to taste.
 max_hz = 12.0
 smoothing = 0.5
+
+[ui]
+language = "system"

@@ -1,0 +1,190 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag (e.g. v0.2.2). Leave blank to use version from package.json.'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows (Installer & Standalone)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows Application with Tauri
+        run: npx tauri build
+
+      - name: Build CLI Tool
+        run: cargo build --release -p tapo-cli
+
+      - name: Prepare Windows Release Artifacts
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          New-Item -ItemType Directory -Force -Path windows-dist
+
+          # Locate target release directory
+          $targetDir = if (Test-Path "target/release") { "target/release" } elseif (Test-Path "src-tauri/target/release") { "src-tauri/target/release" } else { "target/release" }
+
+          # Locate primary executable
+          $mainExe = Get-ChildItem -Path $targetDir -Filter "*.exe" -File | Where-Object { $_.Name -like "*tapo*controller*.exe" -or $_.Name -like "TapoController*.exe" } | Select-Object -First 1
+
+          # 1. Standalone executable
+          if ($mainExe) {
+            Copy-Item $mainExe.FullName "windows-dist/TapoController-v$version-Standalone.exe" -Force
+            Write-Host "Prepared Standalone: windows-dist/TapoController-v$version-Standalone.exe"
+          } else {
+            Write-Error "Main executable not found in $targetDir"
+          }
+
+          # Locate CLI executable
+          $cliExe = Get-ChildItem -Path $targetDir -Filter "tapo-cli.exe" -File | Select-Object -First 1
+          if ($cliExe) {
+            Copy-Item $cliExe.FullName "windows-dist/tapo-cli-v$version-windows-x64.exe" -Force
+            Write-Host "Prepared CLI: windows-dist/tapo-cli-v$version-windows-x64.exe"
+          }
+
+          # 2. Portable ZIP bundle (includes TapoController executable + tapo-cli + config example)
+          if ($mainExe) {
+            $portableDir = "windows-dist/TapoController-v$version-Portable"
+            New-Item -ItemType Directory -Force -Path $portableDir
+            Copy-Item $mainExe.FullName "$portableDir/TapoController.exe" -Force
+            if ($cliExe) {
+              Copy-Item $cliExe.FullName "$portableDir/tapo-cli.exe" -Force
+            }
+            if (Test-Path "tapo-config.example.toml") {
+              Copy-Item "tapo-config.example.toml" "$portableDir/tapo-config.example.toml" -Force
+            }
+            Compress-Archive -Path "$portableDir/*" -DestinationPath "windows-dist/TapoController-v$version-Portable.zip" -Force
+            Remove-Item -Recurse -Force $portableDir
+            Write-Host "Prepared Portable ZIP: windows-dist/TapoController-v$version-Portable.zip"
+          }
+
+          # 3. NSIS Setup Installer
+          $nsisSetup = Get-ChildItem -Path "$targetDir/bundle/nsis/*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $nsisSetup) {
+            $nsisSetup = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis/*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if ($nsisSetup) {
+            Copy-Item $nsisSetup.FullName "windows-dist/TapoController-v$version-Setup.exe" -Force
+            Write-Host "Prepared NSIS: windows-dist/TapoController-v$version-Setup.exe"
+          } else {
+            Write-Warning "NSIS setup executable not found"
+          }
+
+          # 4. MSI Installer
+          $msiInstaller = Get-ChildItem -Path "$targetDir/bundle/msi/*.msi" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $msiInstaller) {
+            $msiInstaller = Get-ChildItem -Path "src-tauri/target/release/bundle/msi/*.msi" -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if ($msiInstaller) {
+            Copy-Item $msiInstaller.FullName "windows-dist/TapoController-v$version.msi" -Force
+            Write-Host "Prepared MSI: windows-dist/TapoController-v$version.msi"
+          } else {
+            Write-Warning "MSI installer not found"
+          }
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-assets
+          path: windows-dist/*
+          if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine Release Tag and Title
+        id: release_info
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.tag_name }}" ]; then
+            TAG="${{ inputs.tag_name }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="v${VERSION}"
+          fi
+          echo "tag_name=${TAG}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "title=TapoController ${TAG}" >> $GITHUB_OUTPUT
+
+      - name: Download Windows Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release-assets
+          path: release-assets
+
+      - name: Inspect Release Assets
+        shell: bash
+        run: |
+          echo "Release assets ready for publication:"
+          ls -lah release-assets/
+
+      - name: Publish Release to GitHub
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.release_info.outputs.tag_name }}
+          name: ${{ steps.release_info.outputs.title }}
+          body: |
+            ## TapoController ${{ steps.release_info.outputs.tag_name }}
+
+            Controlador de escritorio local, rápido y libre de la nube para bombillas inteligentes TP-Link Tapo (L510, L530, L535, L610 y compatibles).
+
+            ### 📦 Descargas disponibles / Available Downloads:
+            - 🪟 **Windows (Instalador Setup NSIS)**: `TapoController-v${{ steps.release_info.outputs.version }}-Setup.exe`
+            - 🪟 **Windows (Portable ZIP - No requiere instalación)**: `TapoController-v${{ steps.release_info.outputs.version }}-Portable.zip`
+            - 🪟 **Windows (Instalador MSI)**: `TapoController-v${{ steps.release_info.outputs.version }}.msi`
+            - 🪟 **Windows (Ejecutable suelto / Standalone)**: `TapoController-v${{ steps.release_info.outputs.version }}-Standalone.exe`
+            - 💻 **CLI para terminal (Standalone)**: `tapo-cli-v${{ steps.release_info.outputs.version }}-windows-x64.exe`
+
+            ### ✨ Novedades y características:
+            - 🌐 **Soporte multi-idioma**: Español, English, Deutsch, Français y Português con documentación de ayuda integrada.
+            - 🎯 **Detección inteligente en red (LAN)** y recuperación automática de IP ante cambios DHCP (DHCP auto-healing por MAC).
+            - 💡 **Control multibombilla refinado**: Desplegable compacto con selector múltiple o simultáneo (*✦ Todas*).
+            - 🎨 **Controles compactos de iluminación**: Pestañas de color directo vs manual con selector RGB y ajuste fino en una sola línea.
+            - 🌈 **Modo Ambilight en tiempo real**: Streaming ambiental sincronizado con la pantalla.
+            - 🔌 **API HTTP/WebSocket local**: Para integraciones avanzadas (Stream Deck, Home Assistant, scripts).
+            - 🪟 **Bandeja de sistema (System Tray)**: Cierre minimizado a la bandeja sin interrumpir la conexión.
+          files: release-assets/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
