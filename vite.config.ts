@@ -12,6 +12,11 @@ export default defineConfig({
     host: "127.0.0.1",
     port: 5173,
     strictPort: true,
+    // Rust build output is locked while cargo links; watching it crashes Vite
+    // (EBUSY on target/debug/deps/*.dll) whenever the backend rebuilds.
+    watch: {
+      ignored: ["**/target/**", "**/src-tauri/**", "**/crates/**"],
+    },
   },
   build: {
     outDir: "dist",
