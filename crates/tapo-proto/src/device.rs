@@ -222,6 +222,39 @@ impl TapoDevice {
         Ok(())
     }
 
+    /// Program the on-bulb effect rule "L1" with arbitrary stops and start it.
+    ///
+    /// Verified on L530EA fw 1.4.4: `change_mode` accepts only `"bln"` (blend)
+    /// and `"direct"`; `change_time` is stored as given down to 50 ms; 2..=8
+    /// stops (16 is rejected with -1008). Each stop is
+    /// `[brightness 1..=100, hue 0..=360, saturation 0..=100, color_temp]`.
+    pub async fn set_effect_rule(
+        &self,
+        change_mode: &str,
+        change_time_ms: u32,
+        stops: &[[u32; 4]],
+    ) -> Result<()> {
+        let rule = json!({
+            "id": "L1",
+            "scene_name": "ZGlzY28=",
+            "change_mode": change_mode,
+            "change_time": change_time_ms.clamp(50, 10_000),
+            "color_status_list": stops,
+        });
+        self.rpc("edit_dynamic_light_effect_rule", Some(rule)).await?;
+        self.enable_effect_rule().await
+    }
+
+    /// (Re)start the stored "L1" rule.
+    pub async fn enable_effect_rule(&self) -> Result<()> {
+        self.rpc(
+            "set_dynamic_light_effect_rule_enable",
+            Some(json!({ "enable": true, "id": "L1" })),
+        )
+        .await?;
+        Ok(())
+    }
+
     /// Stop any running dynamic effect and settle on a plain state.
     pub async fn clear_effect(&self) -> Result<()> {
         let _ = self

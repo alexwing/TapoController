@@ -96,6 +96,64 @@ impl Default for StreamConfig {
     }
 }
 
+/// Audio-reactive "disco" effect driven by the system output (WASAPI loopback).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(default)]
+pub struct DiscoConfig {
+    /// `"beat"` (hue jumps on each beat), `"spectrum"` (hue follows the
+    /// dominant frequency), `"pulse"` (fixed hue, brightness pulses with the
+    /// bass) or `"bands"` (bass=red, mids=green, treble=blue).
+    pub mode: String,
+    /// Output device id to capture (empty = system default output).
+    pub device_id: String,
+    /// Beat-detector sensitivity 0.0..=1.0 (higher = more beats).
+    pub sensitivity: f64,
+    /// Extra gain applied on top of the automatic level normalisation.
+    pub gain: f64,
+    /// Brightness floor as % of `max_brightness` while music plays (0..=100).
+    pub min_brightness: u8,
+    /// Bulb brightness ceiling (1..=100).
+    pub max_brightness: u8,
+    /// Degrees the hue advances on each beat (`beat` mode).
+    pub hue_step: u16,
+    /// Base hue for `pulse` mode (0..=360).
+    pub base_hue: u16,
+    /// Colour saturation (0..=100).
+    pub saturation: u8,
+    /// How long a flash takes to fade out, in milliseconds.
+    pub release_ms: u32,
+    /// Max bulb updates per second (shared stream pipeline).
+    pub max_hz: f64,
+    /// Pipeline smoothing 0.05..=1.0 (1.0 = instant).
+    pub smoothing: f64,
+    /// `beat`/`pulse`: once the tempo is stable, program an on-bulb animation
+    /// locked to the BPM instead of streaming every change (the bulb only
+    /// takes ~5 commands/s, measured).
+    pub native: bool,
+}
+
+impl Default for DiscoConfig {
+    fn default() -> Self {
+        Self {
+            mode: "beat".into(),
+            device_id: String::new(),
+            sensitivity: 0.5,
+            gain: 1.0,
+            min_brightness: 10,
+            max_brightness: 100,
+            hue_step: 60,
+            base_hue: 280,
+            saturation: 100,
+            release_ms: 250,
+            // Measured on L530: each colour command takes ~200 ms on the bulb,
+            // so ~5/s is the real ceiling; smoothing would eat the flashes.
+            max_hz: 5.0,
+            smoothing: 1.0,
+            native: false,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UiConfigFile {
     /// `"system"`, `"es"` or `"en"`.
@@ -173,6 +231,8 @@ pub struct TapoConfig {
     pub api: ApiConfig,
     #[serde(default)]
     pub stream: StreamConfig,
+    #[serde(default)]
+    pub disco: DiscoConfig,
     #[serde(default)]
     pub ui: UiConfigFile,
 }

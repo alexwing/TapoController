@@ -12,16 +12,37 @@
 
 * { box-sizing: border-box; }
 
+html,
+body {
+  /* WebView2 shows classic scrollbars: the vertical one steals ~17 px and a
+     1 px DPI rounding then also triggered a horizontal one. Never scroll
+     sideways; keep the vertical bar thin. */
+  overflow-x: hidden;
+}
 body {
   margin: 0;
   background: var(--bg);
   color: var(--fg);
 }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #3a3350;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4d4469;
+}
 
 .app {
   max-width: 460px;
   margin: 0 auto;
-  padding: 16px;
+  padding: 10px 12px;
 }
 
 header {
@@ -42,19 +63,23 @@ header h1 {
 
 .tabs {
   display: flex;
-  gap: 6px;
-  margin: 8px 0 12px;
+  gap: 5px;
+  margin: 0 0 8px;
+  min-width: 0;
+  flex: 1;
 }
 .tabs button {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   background: var(--card);
   color: var(--muted);
-  padding: 8px 10px;
-  font-size: 13px;
+  padding: 7px 6px;
+  font-size: 12.5px;
+  min-width: 0;
+  white-space: nowrap;
   transition: all 0.15s ease;
 }
 .tabs button.active {
@@ -148,7 +173,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .tab-pane {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .normal-tab-pane,
 .amb-tab-pane,
@@ -248,8 +273,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   background: #171422;
   border: 1px solid #28233a;
   border-radius: 10px;
-  padding: 9px 12px;
-  margin-bottom: 10px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
 }
 .control-header {
   display: flex;
@@ -970,16 +995,16 @@ footer {
 .top-nav-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 6px 0 10px;
+  gap: 6px;
+  margin: 0 0 8px;
 }
 .top-nav-bar .tabs {
   flex: 1;
   margin: 0;
 }
 .btn-help-top {
-  width: 34px;
-  height: 34px;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
   background: var(--card);
   border: 1px solid #34304a;
@@ -1464,3 +1489,293 @@ footer {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
+
+/* ---------------------------------------------------------------- Disco -- */
+.disco-tab-pane {
+  gap: 6px;
+}
+.disco-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px 7px 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #1b1728 0%, #221c33 100%);
+  border: 1px solid #322b48;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.disco-head.active {
+  border-color: rgba(236, 72, 153, 0.45);
+  box-shadow: 0 2px 12px rgba(236, 72, 153, 0.12);
+}
+.disco-head-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.disco-head-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.disco-head-title .hero-icon { color: var(--muted); flex-shrink: 0; }
+.disco-head.active .disco-head-title .hero-icon { color: #f472b6; }
+.disco-head-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.disco-head-pills .status-pill,
+.disco-head-pills .sync-pill {
+  font-size: 9.5px;
+  padding: 1px 5px;
+}
+.btn-amb-hero.disco-play {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+.disco-bpm {
+  font-size: 9.5px;
+  font-weight: 700;
+  color: #fbcfe8;
+  background: rgba(236, 72, 153, 0.18);
+  border: 1px solid rgba(236, 72, 153, 0.35);
+  padding: 0 5px;
+  border-radius: 4px;
+  line-height: 15px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.disco-native-pill { color: #fff; background: rgba(236, 72, 153, 0.45); }
+.disco-wait-pill {
+  color: #fde68a;
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.35);
+}
+
+.disco-preview {
+  background: #120f1b;
+  border: 1px solid #2a2440;
+  border-radius: 10px;
+  padding: 6px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.disco-src {
+  font-size: 10.5px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.disco-src.live { color: #86efac; }
+.disco-src.err { color: var(--err); }
+.disco-spectrum {
+  width: 100%;
+  height: 56px;
+  display: block;
+  border-radius: 5px;
+  background: #0c0a13;
+}
+.disco-timeline {
+  width: 100%;
+  height: 18px;
+  display: block;
+  border-radius: 5px;
+  background: #0c0a13;
+}
+.disco-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.disco-bulb-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.disco-bulb {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #222;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  margin: 4px;
+}
+.disco-bulb-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-size: 9.5px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  width: 28px;
+}
+.disco-target {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #000;
+}
+.disco-meters {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 10px;
+  min-width: 0;
+}
+.disco-meter {
+  display: grid;
+  grid-template-columns: 50px 1fr;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+  color: var(--muted);
+}
+.disco-meter-track {
+  height: 5px;
+  background: #221d31;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.disco-meter-fill {
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+}
+.disco-meter-fill.m0 { background: #ef4444; }
+.disco-meter-fill.m1 { background: #22c55e; }
+.disco-meter-fill.m2 { background: #3b82f6; }
+.disco-meter-fill.m3 { background: #c4b5fd; }
+
+.disco-card {
+  background: #171422;
+  border: 1px solid #28233a;
+  border-radius: 10px;
+  padding: 7px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.disco-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.disco-line .cs-label { flex-shrink: 0; }
+.disco-select {
+  flex: 1;
+  min-width: 0;
+  margin: 0 !important;
+  padding: 4px 6px !important;
+  font-size: 11.5px !important;
+  border-radius: 6px !important;
+}
+.disco-modes { margin: 0; }
+.disco-modes .mode-btn { padding: 5px 2px; }
+.disco-mode-hint {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.3;
+}
+.disco-link {
+  background: none;
+  padding: 0;
+  font-size: 10.5px;
+  color: #c4b5fd;
+  text-decoration: underline;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.disco-link:hover { color: #fff; }
+
+.disco-params {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px 12px;
+}
+.cs-swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 5px;
+  vertical-align: -1px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.disco-sec {
+  grid-column: 1 / -1;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a78bfa;
+  margin-top: 3px;
+  cursor: help;
+}
+.disco-sec:first-child { margin-top: 0; }
+.cs { min-width: 0; }
+.cs.dim { opacity: 0.55; }
+.cs-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+.cs-label {
+  font-size: 11px;
+  color: var(--fg);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cs-val {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #c4b5fd;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.slider.cs-range {
+  margin: 3px 0 1px;
+  height: 4px;
+}
+.disco-native {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  font-size: 11px;
+  color: var(--fg);
+  cursor: pointer;
+}
+.disco-native input {
+  accent-color: #ec4899;
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  flex-shrink: 0;
+}
+.disco-native.on span { color: #fbcfe8; }
+.disco-save {
+  width: 100%;
+  padding: 7px 14px;
+  font-size: 12.5px;
+}

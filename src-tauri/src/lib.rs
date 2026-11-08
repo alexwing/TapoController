@@ -3,13 +3,15 @@
 
 mod ambilight;
 mod api_server;
+mod disco;
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use tapo_proto::{
-    diagnose, BulbConfig, BulbStateSummary, ControlService, Diagnosis, DeviceInfo, TapoConfig,
+    diagnose, BulbConfig, BulbStateSummary, ControlService, Diagnosis, DeviceInfo, DiscoConfig,
+    TapoConfig,
 };
 use tauri::{
     menu::{Menu, MenuItem},
@@ -26,6 +28,7 @@ pub struct AppState {
     cfg: Mutex<TapoConfig>,
     svc: SharedSvc,
     amb: ambilight::Ambilight,
+    disco: disco::Disco,
 }
 
 /// Effective smoothing for the pipeline: instant => no smoothing.
@@ -274,6 +277,7 @@ async fn get_ambilight(state: tauri::State<'_, AppState>) -> CmdResult<bool> {
 
 #[tauri::command]
 async fn set_ambilight(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     on: bool,
     monitor: usize,
@@ -296,11 +300,80 @@ async fn set_ambilight(
     let svc = current(&state.svc).await;
     svc.set_stream_tuning(max_hz, effective_alpha(&mode, smoothing), max_brightness);
     if on {
+        // Only one effect may drive the stream pipeline at a time.
+        state.disco.set_output(false, &app, &state.svc);
         svc.set_power(true).await?;
         state.amb.start(svc, monitor, fps);
     } else {
         state.amb.stop();
     }
+    Ok(())
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct DiscoState {
+    on: bool,
+    config: DiscoConfig,
+    status: disco::DiscoStatus,
+}
+
+#[tauri::command]
+fn list_audio_outputs() -> CmdResult<Vec<disco::AudioDevice>> {
+    disco::list_output_devices().map_err(|message| CmdError { message })
+}
+
+#[tauri::command]
+async fn get_disco(state: tauri::State<'_, AppState>) -> CmdResult<DiscoState> {
+    let config = state.cfg.lock().await.disco.clone();
+    Ok(DiscoState {
+        on: state.disco.is_output(),
+        config,
+        status: state.disco.status(),
+    })
+}
+
+/// Start/stop the audio analysis that feeds the `disco-frame` preview events
+/// (independent of whether colours are sent to the bulb).
+#[tauri::command]
+async fn disco_preview(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    on: bool,
+) -> CmdResult<()> {
+    state.disco.set_preview(on, &app, &state.svc);
+    Ok(())
+}
+
+/// Live-tune the effect without persisting (sliders while previewing).
+#[tauri::command]
+async fn disco_tune(state: tauri::State<'_, AppState>, config: DiscoConfig) -> CmdResult<()> {
+    state.disco.tune(config);
+    Ok(())
+}
+
+/// Persist the settings and turn the bulb output of the disco effect on/off.
+#[tauri::command]
+async fn set_disco(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, AppState>,
+    on: bool,
+    config: DiscoConfig,
+) -> CmdResult<()> {
+    {
+        let mut c = state.cfg.lock().await;
+        c.disco = config.clone();
+        let _ = c.save(&state.cfg_path);
+    }
+    state.disco.tune(config.clone());
+    if on {
+        let svc = current(&state.svc).await;
+        state.amb.stop();
+        svc.set_animation(false, None);
+        svc.set_stream_tuning(config.max_hz, config.smoothing, config.max_brightness);
+        svc.set_power(true).await?;
+    }
+    state.disco.set_output(on, &app, &state.svc);
     Ok(())
 }
 
@@ -431,12 +504,14 @@ async fn submit_stream_color(
 
 #[tauri::command]
 async fn set_animation(
+    app: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
     on: bool,
     speed: Option<u8>,
 ) -> CmdResult<()> {
     let svc = current(&state.svc).await;
     if on {
+        state.disco.set_output(false, &app, &state.svc);
         svc.set_power(true).await?;
     }
     svc.set_animation(on, speed);
@@ -554,11 +629,13 @@ pub fn run() {
         });
     }
 
+    let disco_cfg = cfg.disco.clone();
     let state = AppState {
         cfg_path,
         cfg: Mutex::new(cfg),
         svc,
         amb: ambilight::Ambilight::new(),
+        disco: disco::Disco::new(disco_cfg),
     };
 
     tauri::Builder::default()
@@ -644,6 +721,11 @@ pub fn run() {
             list_monitors,
             get_ambilight,
             set_ambilight,
+            list_audio_outputs,
+            get_disco,
+            disco_preview,
+            disco_tune,
+            set_disco,
             open_help_window
         ])
         .run(tauri::generate_context!())

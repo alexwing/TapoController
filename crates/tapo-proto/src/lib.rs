@@ -15,7 +15,9 @@ pub mod klap;
 pub mod passthrough;
 pub mod service;
 
-pub use config::{ApiConfig, BulbConfig, DeviceConfig, StreamConfig, TapoConfig, UiConfigFile};
+pub use config::{
+    ApiConfig, BulbConfig, DeviceConfig, DiscoConfig, StreamConfig, TapoConfig, UiConfigFile,
+};
 pub use diagnose::{diagnose, Diagnosis, Verdict};
 pub use discover::{
     discover, find_ip_by_mac, get_arp_mac, normalize_mac, resolve_ip_by_mac_with_auth, Discovered,

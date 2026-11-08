@@ -72,6 +72,61 @@ export interface DeviceInfo {
   nickname: string;
 }
 
+export type DiscoMode = "beat" | "spectrum" | "pulse" | "bands";
+
+/** Persisted settings of the audio-reactive disco effect (snake_case = Rust). */
+export interface DiscoConfig {
+  mode: DiscoMode;
+  device_id: string;
+  sensitivity: number;
+  gain: number;
+  min_brightness: number;
+  max_brightness: number;
+  hue_step: number;
+  base_hue: number;
+  saturation: number;
+  release_ms: number;
+  max_hz: number;
+  smoothing: number;
+  native: boolean;
+}
+
+export interface DiscoStatus {
+  device: string;
+  error: string;
+}
+
+export interface DiscoState {
+  on: boolean;
+  config: DiscoConfig;
+  status: DiscoStatus;
+}
+
+/** Payload of the `disco-frame` event (~30 fps). */
+export interface DiscoFrame {
+  bands: number[];
+  bass: number;
+  mid: number;
+  treble: number;
+  level: number;
+  beat: boolean;
+  bpm: number;
+  active: boolean;
+  target: [number, number, number];
+  bulb: [number, number, number];
+  bulbBri: number;
+  sending: boolean;
+  native: boolean;
+  nativeWaiting: boolean;
+  tempoConf: number;
+}
+
+export interface AudioDevice {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
 // Tauri command errors come back as { message: string }.
 async function call<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
   try {
@@ -150,6 +205,12 @@ export const api = {
       maxHz,
       maxBrightness,
     }),
+  listAudioOutputs: () => call<AudioDevice[]>("list_audio_outputs"),
+  getDisco: () => call<DiscoState>("get_disco"),
+  discoPreview: (on: boolean) => call<void>("disco_preview", { on }),
+  discoTune: (config: DiscoConfig) => call<void>("disco_tune", { config }),
+  setDisco: (on: boolean, config: DiscoConfig) =>
+    call<void>("set_disco", { on, config }),
   openHelpWindow: () => call<void>("open_help_window"),
 };
 

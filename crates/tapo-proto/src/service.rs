@@ -690,6 +690,42 @@ impl ControlService {
         self.anim_on.load(Ordering::Relaxed)
     }
 
+    /// Run an on-bulb effect rule on every current target (see
+    /// `TapoDevice::set_effect_rule`). With `stops == None` the stored rule is
+    /// just re-enabled (cheap phase re-sync).
+    pub async fn play_effect(
+        &self,
+        change_mode: &str,
+        change_time_ms: u32,
+        stops: Option<Vec<[u32; 4]>>,
+    ) -> Result<()> {
+        let targets = self.resolve_targets(None).await;
+        if targets.is_empty() {
+            return Err(TapoError::NotConnected);
+        }
+        let tasks = targets.into_iter().map(|t| {
+            let stops = stops.clone();
+            async move {
+                let dev = t.device().await?;
+                match stops {
+                    Some(s) => dev.set_effect_rule(change_mode, change_time_ms, &s).await,
+                    None => dev.enable_effect_rule().await,
+                }
+            }
+        });
+        let res = futures_util::future::join_all(tasks).await;
+        res.into_iter().find(|r| r.is_err()).unwrap_or(Ok(()))
+    }
+
+    /// Stop the on-bulb effect on every current target.
+    pub async fn stop_effect(&self) {
+        for t in self.resolve_targets(None).await {
+            if let Ok(dev) = t.device().await {
+                let _ = dev.clear_effect().await;
+            }
+        }
+    }
+
     /// Live-tune the stream pipeline.
     pub fn set_stream_tuning(&self, max_hz: f64, smoothing: f64, max_brightness: u8) {
         self.stream_max_hz_milli
@@ -707,6 +743,7 @@ async fn color_pipeline(
     mut rx: mpsc::UnboundedReceiver<(u8, u8, u8)>,
 ) {
     let mut state: Option<(f64, f64, f64)> = None;
+    let mut last_sent: Option<(u16, u8, u8)> = None;
 
     while let Some(mut latest) = rx.recv().await {
         while let Ok(c) = rx.try_recv() {
@@ -733,13 +770,24 @@ async fn color_pipeline(
         let (hue, sat, _) =
             crate::device::rgb_to_hsv(sr.round() as u8, sg.round() as u8, sb.round() as u8);
 
+        // Don't burn a ~200 ms bulb round-trip on a colour it already shows.
+        if last_sent == Some((hue, sat, bri)) {
+            continue;
+        }
+        let t0 = std::time::Instant::now();
         if let Err(e) = svc
             .exec_on_targets(None, Action::ColorBri(hue, sat, bri))
             .await
         {
             tracing::warn!("stream color apply failed: {e}");
+        } else {
+            last_sent = Some((hue, sat, bri));
         }
-        tokio::time::sleep(min_interval).await;
+        // The send itself takes ~200 ms (bulb processing, measured); only wait
+        // for whatever is left of the interval so `max_hz` means what it says.
+        if let Some(rest) = min_interval.checked_sub(t0.elapsed()) {
+            tokio::time::sleep(rest).await;
+        }
     }
 }
 

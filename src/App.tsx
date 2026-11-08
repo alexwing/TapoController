@@ -31,6 +31,8 @@ import {
   IconWave,
 } from "./icons";
 import { HelpWindow } from "./HelpWindow";
+import { DiscoTab } from "./DiscoTab";
+import { IconMusic } from "./icons";
 
 const PRESETS = [
   "#ff3b30",
@@ -43,7 +45,7 @@ const PRESETS = [
   "#ff2d55",
 ];
 
-type Tab = "normal" | "streaming" | "settings";
+type Tab = "normal" | "streaming" | "disco" | "settings";
 
 export default function App() {
   const [cfg, setCfg] = useState<UiConfig | null>(null);
@@ -122,7 +124,7 @@ export default function App() {
     <div className="app">
       <div className="top-nav-bar">
         <nav className="tabs">
-          {(["normal", "streaming", "settings"] as Tab[]).map((tb) => (
+          {(["normal", "streaming", "disco", "settings"] as Tab[]).map((tb) => (
             <button
               key={tb}
               className={tab === tb ? "active" : ""}
@@ -130,6 +132,7 @@ export default function App() {
             >
               {tb === "normal" && <IconBulb size={15} />}
               {tb === "streaming" && <IconMonitor size={15} />}
+              {tb === "disco" && <IconMusic size={15} />}
               {tb === "settings" && <IconSettings size={15} />}
               <span>{t(`tab.${tb}`)}</span>
             </button>
@@ -161,6 +164,9 @@ export default function App() {
       )}
       {tab === "streaming" && cfg && (
         <StreamingTab t={t} cfg={cfg} setErr={setErr} />
+      )}
+      {tab === "disco" && cfg && (
+        <DiscoTab t={t} cfg={cfg} setErr={setErr} />
       )}
       {tab === "settings" && cfg && (
         <SettingsTab

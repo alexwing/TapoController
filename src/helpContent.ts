@@ -87,7 +87,30 @@ El modo Ambilight captura en tiempo real los colores que se reproducen en tu mon
 
 ---
 
-## 6. Servidor API Local (Plugins e Integraciones)
+## 6. Modo Disco (Audio del Equipo)
+
+El modo Disco escucha lo que suena por la tarjeta de sonido (música, vídeos, juegos) y hace bailar las bombillas al ritmo. No usa el micrófono: captura la salida de audio directamente (loopback de Windows), así que funciona aunque uses auriculares.
+
+- **Previsualización en vivo**: al abrir la pestaña ves el espectro de lo que suena (graves a la izquierda, agudos a la derecha), los niveles de graves, medios, agudos y volumen, y una **bombilla simulada** que ya aplica el límite de envíos y el suavizado, es decir, lo que hará la bombilla de verdad. Debajo, una línea de tiempo de los últimos 6 s compara el color calculado (arriba) con el de la bombilla (abajo); las marcas blancas son los golpes detectados.
+- **Botón «Usar valores recomendados»**: deja el efecto elegido en un punto de partida que funciona; a partir de ahí, ajusta.
+- **No envía nada hasta que pulsas ▶**: puedes ajustar el efecto mirando la previsualización y luego empezar a enviarlo. Los cambios se aplican al momento; **Guardar** los deja como predeterminados.
+- **Efectos**:
+  - **Golpes**: cambia de color en cada golpe de bombo (el *salto de tono* decide cuánto) y destella.
+  - **Espectro**: el color sigue a la frecuencia dominante, de rojo (graves) a violeta (agudos).
+  - **Pulso**: un color fijo que late con los graves.
+  - **Bandas**: graves en rojo, medios en verde y agudos en azul.
+- **Ajustes clave**:
+  - \`Sensibilidad a golpes\`: súbela si no detecta el ritmo; bájala si destella con todo.
+  - \`Ganancia\`: el nivel se normaliza solo con el volumen del sistema; súbela si la música es muy suave.
+  - \`Caída del destello\`: cuánto tarda en apagarse cada destello. Valores de 200-400 ms se ven mejor en la bombilla.
+  - \`Brillo mínimo\`: la luz que queda entre golpes.
+  - \`Máx. actualizaciones/s\` y \`Suavizado\`: la L530 tarda ~200 ms en procesar cada orden (medido), así que el techo real son ~5 cambios por segundo. Deja el suavizado en *Instantáneo* para que los golpes se noten.
+- **Animación en la bombilla** (Golpes y Pulso): cuando el tempo lleva 3 s estable, la app programa en la propia bombilla una animación al ritmo del BPM (cambio de color o pulso de brillo cada medio golpe), la arranca en un golpe y la vuelve a alinear cada 16 golpes. Así el pulso no depende del límite de 5 órdenes/s. Si el ritmo se pierde o hay silencio, vuelve al envío normal. La previsualización muestra la animación y la etiqueta *♪ Animación en bombilla* indica cuándo está activa.
+- Disco, Ambilight y el arcoíris comparten el mismo canal: al activar uno se detienen los otros.
+
+---
+
+## 7. Servidor API Local (Plugins e Integraciones)
 
 TapoController incluye un servidor HTTP y WebSocket local ultrarrápido (por defecto en \`http://127.0.0.1:7755\`).
 
@@ -187,7 +210,30 @@ Ambilight captures the average colors displayed on your screen and projects them
 
 ---
 
-## 6. Local API Server (Plugins & Integrations)
+## 6. Disco Mode (PC Audio)
+
+Disco mode listens to whatever your sound card is playing (music, videos, games) and makes the bulbs dance to it. It does not use the microphone: it captures the audio output directly (Windows loopback), so it works with headphones too.
+
+- **Live preview**: the tab shows the spectrum of what is playing (bass on the left, treble on the right), bass/mids/treble/volume meters and a **simulated bulb** that already applies the update-rate limit and smoothing, i.e. what the real bulb will do. Below, a 6-second timeline compares the computed colour (top) with the bulb (bottom); white ticks are detected beats.
+- **"Use recommended values" button**: puts the selected effect on a starting point that works; tweak from there.
+- **Nothing is sent until you press ▶**: tune the effect while watching the preview, then start sending. Changes apply live; **Save** stores them as defaults.
+- **Effects**:
+  - **Beats**: changes colour on every kick (the *hue step* sets how far) and flashes.
+  - **Spectrum**: colour follows the dominant frequency, from red (bass) to violet (treble).
+  - **Pulse**: a fixed colour that throbs with the bass.
+  - **Bands**: bass as red, mids as green, treble as blue.
+- **Key settings**:
+  - \`Beat sensitivity\`: raise it if the rhythm is missed; lower it if everything flashes.
+  - \`Gain\`: the level self-normalises to the system volume; raise it for very quiet music.
+  - \`Flash release\`: how long each flash takes to fade. 200-400 ms looks best on the bulb.
+  - \`Minimum brightness\`: the light left between beats.
+  - \`Max updates/s\` and \`Smoothing\`: the L530 needs ~200 ms to process each command (measured), so the real ceiling is ~5 changes per second. Keep smoothing at *Instant* so beats stand out.
+- **On-bulb animation** (Beats and Pulse): once the tempo has been stable for 3 s, the app programs an animation on the bulb itself at the BPM (a colour change or brightness pulse every half beat), starts it on a beat and re-aligns it every 16 beats, so the pulse no longer depends on the 5 commands/s limit. If the beat is lost or there is silence, it falls back to normal sending. The preview shows the animation and the *♪ On-bulb animation* tag tells you when it is active.
+- Disco, Ambilight and the rainbow share the same channel: starting one stops the others.
+
+---
+
+## 7. Local API Server (Plugins & Integrations)
 
 TapoController includes an ultra-fast local HTTP/WebSocket server (default: \`http://127.0.0.1:7755\`).
 
@@ -284,7 +330,21 @@ Ambilight erfasst die durchschnittliche Farbe Ihres Bildschirms in Echtzeit und 
 
 ---
 
-## 6. Lokale API (Plugins & Automatisierung)
+## 6. Disco-Modus (PC-Audio)
+
+Der Disco-Modus hört, was die Soundkarte abspielt (Musik, Videos, Spiele), und lässt die Lampen im Takt tanzen. Er nutzt kein Mikrofon, sondern nimmt den Audioausgang direkt ab (Windows-Loopback) und funktioniert daher auch mit Kopfhörern.
+
+- **Live-Vorschau**: Spektrum (Bass links, Höhen rechts), Pegel für Bass/Mitten/Höhen/Lautstärke und eine **simulierte Lampe**, die Update-Limit und Glättung schon berücksichtigt. Darunter vergleicht eine 6-Sekunden-Zeitleiste die berechnete Farbe (oben) mit der Lampe (unten); weiße Striche sind erkannte Beats.
+- **„Empfohlene Werte“**: setzt den gewählten Effekt auf einen funktionierenden Ausgangspunkt.
+- **Gesendet wird erst nach ▶**: Effekt in der Vorschau einstellen, dann starten. Änderungen wirken sofort; **Speichern** macht sie zum Standard.
+- **Effekte**: **Beats** (Farbwechsel und Blitz bei jedem Bassschlag), **Spektrum** (Farbe folgt der dominanten Frequenz), **Puls** (feste Farbe pulsiert mit dem Bass), **Bänder** (Bass rot, Mitten grün, Höhen blau).
+- **Tipps**: Empfindlichkeit erhöhen, wenn Beats fehlen; Abklingzeit 200-400 ms; die L530 braucht ~200 ms pro Befehl (gemessen), also maximal ~5 Änderungen pro Sekunde.
+- **Animation in der Lampe** (Beats und Puls): Bei 3 s stabilem Tempo programmiert die App eine Animation im BPM-Takt direkt in der Lampe, startet sie auf einem Beat und richtet sie alle 16 Beats neu aus – ohne 5/s-Limit. Ohne Beat wird wieder normal gesendet.
+- Disco, Ambilight und Regenbogen teilen sich denselben Kanal: Startet einer, stoppen die anderen.
+
+---
+
+## 7. Lokale API (Plugins & Automatisierung)
 
 Integrierter lokaler HTTP- und WebSocket-Server (\`http://127.0.0.1:7755\`).
 
@@ -374,7 +434,21 @@ Ambilight analyse en direct la couleur moyenne de votre écran pour éclairer vo
 
 ---
 
-## 6. Serveur API Local (Plugins et Intégrations)
+## 6. Mode Disco (audio du PC)
+
+Le mode Disco écoute ce que joue la carte son (musique, vidéos, jeux) et fait danser les ampoules au rythme. Il n'utilise pas le micro : il capture directement la sortie audio (loopback Windows), donc il fonctionne aussi au casque.
+
+- **Aperçu en direct** : spectre (graves à gauche, aigus à droite), niveaux graves/médiums/aigus/volume et une **ampoule simulée** qui applique déjà la limite d'envois et le lissage. En dessous, une frise de 6 s compare la couleur calculée (haut) et l'ampoule (bas) ; les traits blancs sont les battements détectés.
+- **« Valeurs recommandées »** : met l'effet choisi sur un point de départ qui fonctionne.
+- **Rien n'est envoyé avant ▶** : réglez l'effet en regardant l'aperçu, puis lancez l'envoi. Les changements s'appliquent en direct ; **Enregistrer** les garde par défaut.
+- **Effets** : **Battements** (change de couleur et clignote à chaque grosse caisse), **Spectre** (la couleur suit la fréquence dominante), **Pulsation** (couleur fixe qui bat avec les graves), **Bandes** (graves rouge, médiums vert, aigus bleu).
+- **Conseils** : montez la sensibilité si le rythme n'est pas détecté ; décroissance de 200-400 ms ; la L530 met ~200 ms par commande (mesuré), soit ~5 changements par seconde au maximum.
+- **Animation dans l'ampoule** (Battements et Pulsation) : après 3 s de tempo stable, l'application programme dans l'ampoule une animation au BPM, la lance sur un battement et la réaligne tous les 16 battements, sans la limite de 5/s. Sans rythme, retour à l'envoi normal.
+- Disco, Ambilight et l'arc-en-ciel partagent le même canal : en lancer un arrête les autres.
+
+---
+
+## 7. Serveur API Local (Plugins et Intégrations)
 
 Serveur HTTP/WebSocket local (\`http://127.0.0.1:7755\`).
 
@@ -464,7 +538,21 @@ O modo Ambilight analisa as cores médias apresentadas no monitor e reflete-as n
 
 ---
 
-## 6. Servidor API Local (Plugins e Integrações)
+## 6. Modo Disco (áudio do PC)
+
+O modo Disco ouve o que a placa de som está a reproduzir (música, vídeos, jogos) e faz as lâmpadas dançar ao ritmo. Não usa o microfone: captura diretamente a saída de áudio (loopback do Windows), por isso também funciona com auscultadores.
+
+- **Pré-visualização ao vivo**: espectro (graves à esquerda, agudos à direita), níveis de graves/médios/agudos/volume e uma **lâmpada simulada** que já aplica o limite de envios e a suavização. Por baixo, uma linha temporal de 6 s compara a cor calculada (cima) com a lâmpada (baixo); as marcas brancas são batidas detetadas.
+- **«Usar valores recomendados»**: põe o efeito escolhido num ponto de partida que funciona.
+- **Nada é enviado antes de ▶**: ajuste o efeito a ver a pré-visualização e depois comece a enviar. As alterações aplicam-se de imediato; **Guardar** fixa-as como predefinição.
+- **Efeitos**: **Batidas** (muda de cor e pisca a cada bumbo), **Espectro** (a cor segue a frequência dominante), **Pulso** (cor fixa que pulsa com os graves), **Bandas** (graves vermelho, médios verde, agudos azul).
+- **Dicas**: suba a sensibilidade se o ritmo não for detetado; queda de 200-400 ms; a L530 demora ~200 ms por ordem (medido), ou seja ~5 mudanças por segundo no máximo.
+- **Animação na lâmpada** (Batidas e Pulso): com 3 s de tempo estável, a aplicação programa na própria lâmpada uma animação ao BPM, arranca-a numa batida e realinha-a a cada 16 batidas, sem o limite de 5/s. Sem ritmo, volta ao envio normal.
+- Disco, Ambilight e o arco-íris partilham o mesmo canal: ligar um desliga os outros.
+
+---
+
+## 7. Servidor API Local (Plugins e Integrações)
 
 Servidor HTTP e WebSocket local (\`http://127.0.0.1:7755\`).
 
