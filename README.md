@@ -4,20 +4,28 @@
 
 <h1 align="center">TapoController</h1>
 
-**100% local control (no cloud) of a TP‑Link Tapo L530 smart bulb** — desktop
-app (Tauri 2 + React) with an own, reverse‑engineered implementation of the
-Tapo local protocol (KLAP), a smooth on‑device animated mode, a screen‑capture
-**Ambilight** that works with PotPlayer/VLC/anything, and a local API for
-plugins.
+**100% local control (no cloud) of TP‑Link Tapo L530 smart bulbs** — a desktop
+app (Tauri 2 + React) with its own reverse‑engineered implementation of the
+Tapo local protocol (KLAP). It drives one or several bulbs at once and adds three
+light effects:
+
+- **Ambilight**: the bulb follows the colours on your screen. It works with
+  PotPlayer, VLC, games or anything else on that monitor.
+- **Disco**: the bulb dances to whatever your PC is playing, with a live
+  preview for tuning.
+- **Rainbow**: a smooth colour cycle that the bulb runs by itself.
+
+A local API lets plugins and automations control it too.
 
 No third‑party SDK and no TP‑Link cloud during operation: every command goes
-straight to the bulb on your LAN. It can also **auto‑detect** the bulb's IP on
-your network.
+straight to the bulbs on your LAN. The app finds bulbs on your network by
+itself and follows them by MAC address when your router hands out a new IP.
 
 <p align="center">
-  <img src="docs/capture02.png" width="320" alt="Normal tab" />
-  &nbsp;&nbsp;
-  <img src="docs/capture01.png" width="320" alt="Streaming / Ambilight tab" />
+  <img src="docs/screenshot-normal.png" width="210" alt="Normal tab" />
+  <img src="docs/screenshot-streaming.png" width="210" alt="Streaming / Ambilight tab" />
+  <img src="docs/screenshot-disco.png" width="210" alt="Disco tab" />
+  <img src="docs/screenshot-settings.png" width="210" alt="Settings · Bulbs" />
 </p>
 
 ---
@@ -32,25 +40,32 @@ your network.
 | Light | White **2500–6500 K** + ~16M colors, dimmable |
 | Brightness / power | ≈ 806 lm, ≈ 8.7 W (60 W equivalent) |
 | Connectivity | 2.4 GHz Wi‑Fi (802.11 b/g/n), **no hub required** |
-| Local protocol | **KLAP** over HTTP (firmware "SHIP 2.0", e.g. `1.4.2`) |
+| Local protocol | **KLAP** over HTTP (firmware "SHIP 2.0", tested on `1.4.x`) |
 | Matter | ❌ Not supported by the L530 (the L535E is the Matter model) |
 
 Official product page: **<https://www.tapo.com/en/product/smart-light-bulb/tapo-l530e/>**
 
+Developed and tested on the L530. Other Tapo colour bulbs that speak KLAP
+(L510, L535, L610…) will probably work too, but they are untested.
+
 ---
 
-## Download & install
+## Download & install (Windows)
 
 Grab the latest from **[Releases](https://github.com/alexwing/TapoController/releases/latest)**:
 
 | File | Use |
 |------|-----|
-| `TapoController_*_x64-setup.exe` | NSIS installer (recommended) |
-| `TapoController_*_x64_en-US.msi` | MSI installer (deployment/GPO) |
-| `TapoController_*_x64_standalone.exe` | Portable, no install — just run it |
+| `TapoController-vX.Y.Z-Setup.exe` | Installer (recommended, per‑user, no admin) |
+| `TapoController-vX.Y.Z.msi` | MSI installer (deployment/GPO) |
+| `TapoController-vX.Y.Z-Standalone.exe` | Single exe, no install — just run it |
+| `TapoController-vX.Y.Z-Portable.zip` | App + `tapo-cli` + example config in one folder |
+| `tapo-cli-vX.Y.Z-windows-x64.exe` | Command‑line diagnostic tool |
 
 > The binaries are **unsigned**, so Windows SmartScreen shows an
 > "unknown publisher" warning the first time → *More info* → *Run anyway*.
+
+Installing a new version over an old one keeps your settings.
 
 ### One‑time setup in the Tapo mobile app (Android / iOS)
 
@@ -62,8 +77,7 @@ bulb's firmware — there is no software way around it. You only do this **once*
    [iOS](https://apps.apple.com/app/tp-link-tapo/id1472718009)) and sign in
    (a free TP‑Link account is required just for setup).
 2. **Add the bulb**: tap **+** → *Add Device* → *Bulbs* → follow the pairing
-   (the bulb must end up connected to your **2.4 GHz Wi‑Fi**). Note its IP
-   (your router's client list, or in the app: device → Settings → Device Info).
+   (the bulb must end up connected to your **2.4 GHz Wi‑Fi**).
 3. **Enable local/third‑party access**. Open the app's account tab and turn the
    setting **ON**. The exact label/location varies by app version — look for
    one of these:
@@ -71,8 +85,8 @@ bulb's firmware — there is no software way around it. You only do this **once*
    - or **Me** → **Third‑Party Services** / **Local Access** → ON
    - (older builds: Settings → *Allow local control*)
 4. Keep the same TP‑Link account credentials handy — you'll enter them once in
-   TapoController's **Settings** tab (they're used only locally to derive the
-   auth hash; never sent to any cloud).
+   TapoController (they're used only locally to derive the auth hash; never
+   sent to any cloud).
 
 > If it was already paired before, you only need step 3. If TapoController's
 > **Diagnose** says `KlapGatedOff`, step 3 is not enabled yet (toggle it
@@ -83,80 +97,117 @@ After that, **all control is 100% local** — no cloud, no internet needed.
 
 ### First run
 
-1. Open TapoController → **Settings** tab.
-2. Fill in **IP/host**, and the **e‑mail/password of the TP‑Link account the
-   bulb is linked to** (used only locally to derive the auth hash — never sent
-   to any cloud). Leave **Protocol** on *Auto‑detect*.
-3. Press **Save & apply**. Use **Diagnose connection** if something fails:
+1. Open TapoController → **Settings** → **Account**, enter the **e‑mail and
+   password of the TP‑Link account** the bulbs are linked to, and **Save**.
+2. Go to **Settings** → **Bulbs** → **Detect bulbs on network**. The scan takes
+   about a second; add the bulbs it finds (or **+ Add bulb** and type the IP).
+3. **Diagnose** on a bulb card checks the connection:
    - `KlapReady` → good.
    - `KlapGatedOff` → you still need to enable Third‑Party Services (above).
    - `Unreachable` → wrong IP / not on the LAN.
-4. Settings are persisted to `%APPDATA%\TapoController\tapo-config.toml`.
-
-Recommended: block the bulb's WAN/internet access on your router (MAC prefix
-`3C‑6A‑D2…`) so a cloud re‑bind can't overwrite the local setup.
+4. Settings are stored in `%APPDATA%\TapoController\tapo-config.toml`.
 
 ---
 
 ## User manual
 
-The app has three tabs. The header shows the bulb name and on/off state and
-auto‑refreshes every 5 s.
+The app has four tabs: **Normal**, **Streaming**, **Disco** and **Settings**.
+The **?** button opens the built‑in help guide. The UI comes in English,
+Spanish, German, French and Portuguese, and follows your system language by
+default.
+
+### Several bulbs
+
+The selector at the top of the Normal tab chooses what you control:
+
+- **✦ All (Synchronized)** sends every change to all bulbs in parallel.
+- Pick a single bulb to adjust it on its own.
+
+**Quick Individual Control** at the bottom of the tab turns each bulb on or off
+with one tap. Ambilight and Disco follow the same choice (the *All* pill on their
+header).
 
 ### Normal tab
 
-![Normal](docs/capture02.png)
+![Normal](docs/screenshot-normal.png)
 
-- **Turn on / Turn off**.
+- **Power button** — click to toggle; it glows green while the light is on.
 - **Brightness** 1–100 %.
-- **Hue / Saturation** sliders (apply on release).
-- **Color (RGB)** picker — pick any color.
-- **Temperature** 2500–6500 K (warm ↔ cool white).
-- **Presets** — quick color swatches.
-- **Animated mode (rainbow)** — a smooth color cycle rendered **by the bulb
-  itself** (its native dynamic‑effect engine, like the Tapo app: no flicker,
-  no per‑frame network traffic). **Speed** slider sets the fade time.
+- **Temperature** 2500–6500 K, with **2700K Warm / 4000K Neutral / 6500K
+  Cool** chips that use the bulb's white LEDs at full output.
+- **Colors** — eight preset colours plus an RGB picker. **Manual** shows hue and
+  saturation sliders for fine control.
+- **Rainbow Effect** — a smooth colour cycle rendered **by the bulb itself**
+  (its native dynamic‑effect engine: no flicker, no per‑frame network
+  traffic). The slider sets the speed.
 
 ### Streaming tab — Ambilight
 
-![Streaming](docs/capture01.png)
+![Streaming](docs/screenshot-streaming.png)
 
-Captures the average color of a monitor and pushes it to the bulb, so the light
-matches what's on screen. Player‑agnostic — works with **PotPlayer**, VLC,
-browsers, games, anything.
+Captures the average colour of a monitor and pushes it to the bulbs, so the
+light matches what's on screen. Player‑agnostic — works with **PotPlayer**,
+VLC, browsers, games, anything.
 
-1. Pick the **Monitor** (multi‑display supported — choose Display 1, 2, …).
-2. Set **Captures per second** (1–30).
-3. **Change mode**:
-   - **Fade (smooth)** — eased transitions; set the **Fade smoothness**.
-   - **Instant** — snap to the screen color.
-4. **Max bulb updates/s** — caps how often the bulb is updated (LAN/KLAP
-   latency is ~30–150 ms, so realistic sustained rate is ~5–15 Hz; the pipeline
-   coalesces and rate‑limits so the bulb is never flooded).
-5. **Brightness cap (%)** — the bulb brightness tracks the scene luminance but
-   never exceeds this ceiling (dark scene → dim, bright scene → up to the cap).
-6. Tick **Enable ambilight** (or press the button) to start/stop. Settings are
-   saved and applied live.
+- **Monitor** — which display to sample (★ = primary).
+- **Change mode** — **Fade (smooth)** eases between colours (set **Fade
+  smoothness**); **Instant** snaps to the screen colour.
+- **Captures per second** (1–30) and **Max updates/s** — how often the screen is
+  sampled and how often the bulb is updated. The pipeline coalesces and
+  rate‑limits, so the bulb is never flooded.
+- **Brightness cap (%)** — brightness tracks the scene (dark scene → dim) but
+  never exceeds this ceiling.
+- **▶** starts/stops; **Save** keeps the settings as defaults.
 
-> Tip for PotPlayer: play the video full‑screen on the selected monitor and
-> set mode to *Fade* with a medium smoothness for a relaxed backlight, or
-> *Instant* at higher fps for a punchier effect.
+### Disco tab — music from the PC
+
+![Disco](docs/screenshot-disco.png)
+
+Listens to whatever your sound card is playing and makes the bulbs react to it.
+It does **not** use the microphone: it captures the audio output directly
+(WASAPI loopback), so it also works with headphones.
+
+- **Live preview** — spectrum of what's playing, bass/mids/treble/volume
+  meters and a **simulated bulb** that already applies the bulb's real update
+  limit. Below it, a 6‑second timeline compares the computed colour (top) with
+  what the bulb shows (bottom); white ticks are detected beats.
+- **Nothing is sent until you press ▶.** Tune while watching the preview;
+  changes apply live and **Save** stores them as defaults.
+- **Effects**:
+  - **Beats** — changes colour on every kick and flashes.
+  - **Spectrum** — colour follows the dominant frequency (red = bass → violet
+    = treble).
+  - **Pulse** — a fixed colour that throbs with the bass.
+  - **Bands** — bass as red, mids as green, treble as blue.
+- **Recommended values** sets the selected effect to a known‑good starting
+  point. Each effect shows only the settings it uses.
+- **On‑bulb animation, locked to the BPM** (Beats and Pulse) — the L530 takes
+  ~200 ms to process each colour command, so streaming tops out at ~5 changes
+  per second. With this option on, the app tracks the tempo, and once it has
+  been stable for 3 s it programs an animation on the bulb itself at that BPM. It
+  starts the animation on a beat and re‑aligns it every 16 beats. If the beat is
+  lost it falls back to normal streaming. The **♪ On‑bulb animation** tag shows
+  when it is active.
+- Disco, Ambilight and the rainbow share one channel: starting one stops the
+  others.
 
 ### Settings tab
 
-- **Connection**: host, account user/password, protocol, **Diagnose**.
-  - **Detect bulbs**: scans your LAN and lists Tapo bulbs found; the host
-    field is an editable combo — pick a detected IP or type one. Handy when
-    DHCP changes the bulb's address.
-- **Local API**: enable/disable the embedded server, bind address and port.
-- **Language**: *System* (auto‑detect), *Spanish* or *English*.
-- **Save & apply** persists everything (changing API port/bind needs an app
-  restart).
+![Settings](docs/screenshot-settings.png)
+
+- **Account** — TP‑Link e‑mail/password, language, and the help guide.
+- **Bulbs** — the bulb list: name, IP, MAC, enable/remove, **Detect bulbs on
+  network**, **Find by MAC** and **Diagnose**. **Sync all bulbs** turns
+  synchronized control on or off.
+  - Each bulb's **MAC** is stored. If the router gives a bulb a new IP, the app
+    finds it again on the LAN (ARP) and updates the address on its own.
+- **Api** — enable/disable the local API server, bind address and port
+  (changing them needs an app restart).
 
 ### System tray (Windows)
 
 Closing or minimizing the window sends the app to the **tray** (it keeps
-running — API and ambilight included). Tray menu: **Turn on · Turn off ·
+running — API, ambilight and disco included). Tray menu: **Turn on · Turn off ·
 Show/Hide · Exit**. Left‑click the tray icon toggles the window.
 
 ---
@@ -164,9 +215,10 @@ Show/Hide · Exit**. Left‑click the tray icon toggles the window.
 ## Local API (for plugins)
 
 With the app running, an HTTP + WebSocket server is available (default
-`http://127.0.0.1:7755`). Endpoints: `/health`, `/monitors`, `/state`,
-`/power`, `/brightness`, `/color`, `/color_temp`, `/animation`, and a
-WebSocket `/stream` for high‑rate color frames.
+`http://127.0.0.1:7755`). Endpoints: `/health`, `/monitors`, `/bulbs`,
+`/active`, `/sync`, `/state`, `/power`, `/brightness`, `/color`,
+`/color_temp`, `/white`, `/animation`, and a WebSocket `/stream` for high‑rate
+color frames.
 
 Full spec and examples: **[`docs/API.md`](docs/API.md)** ·
 sample client: [`examples/ambilight-demo.mjs`](examples/ambilight-demo.mjs).
@@ -191,18 +243,22 @@ cargo test --workspace # run the test suite
 ```
 
 (`app:dev`/`app:build` are aliases for `tauri dev`/`tauri build`, which run the
-Vite dev/build steps automatically.)
+Vite dev/build steps automatically.) Pushing a `vX.Y.Z` tag builds and
+publishes a GitHub release through `.github/workflows/release.yml`.
 
 Project layout:
 
 ```
 crates/tapo-proto/   Core: own protocol (KLAP + legacy securePassthrough),
-                     config, ControlService (session, reconnect, color
-                     pipeline, animation), diagnostics.
+                     raw HTTP client, config, ControlService (session,
+                     reconnect, color pipeline, on-bulb effects), diagnostics.
+                     examples/fx_probe.rs measures bulb latency and effects.
 crates/tapo-cli/     Diagnostic CLI (doctor / info / set / raw …).
-src-tauri/           Desktop app: IPC, tray, embedded API server, ambilight.
-src/                 React/Vite/TypeScript UI (3 tabs + i18n).
-docs/                API spec + screenshots.
+src-tauri/           Desktop app: IPC, tray, embedded API server, ambilight
+                     (screen capture), disco (WASAPI loopback + FFT + beat
+                     and tempo tracking), multi-bulb control.
+src/                 React/Vite/TypeScript UI (4 tabs, 5 languages, help guide).
+docs/                API spec, screenshots, icon.
 scripts/             GitHub release helper.
 ```
 
@@ -212,12 +268,19 @@ scripts/             GitHub release helper.
   names** and rejects the lowercase headers `hyper`/`reqwest` emit, so
   `tapo-proto` ships its **own raw HTTP/1.1 client** (`http.rs`) with
   Title‑Case headers and `Content-Length`‑delimited reads.
+- Each request is sent as **one TCP packet with Nagle disabled**. Sending
+  headers and body separately made every command wait ~200 ms for the bulb's
+  delayed ACK; fixing it halved command latency.
 - Protocol is **KLAP**; `handshake1` needs a random seed and the credential
   hash for this firmware is `sha256( sha1(user) ‖ sha1(pass) )` (auto‑resolved
   against the server hash among known schemes).
-- The smooth rainbow uses the bulb's `edit_dynamic_light_effect_rule` +
-  `set_dynamic_light_effect_rule_enable` (rule "L1", `change_mode: "bln"`,
-  exactly 8 color stops) — the firmware does the fades.
+- Measured limits on an L530 (fw 1.4.x): a state read takes ~35 ms, but a colour
+  change takes **~200 ms** on the bulb and commands are serialized, so about
+  **5 colour changes per second** is the ceiling.
+- The rainbow and the Disco on‑bulb animation use the bulb's own effect engine:
+  `edit_dynamic_light_effect_rule` + `set_dynamic_light_effect_rule_enable`
+  (rule "L1", `change_mode` `"bln"` or `"direct"`, 2–8 colour stops, step time
+  down to 50 ms). The firmware does the fades.
 
 ## License
 
