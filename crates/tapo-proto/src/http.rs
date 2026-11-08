@@ -66,8 +66,14 @@ pub async fn request(
         }
         head.push_str("\r\n");
 
-        stream.write_all(head.as_bytes()).await?;
-        stream.write_all(body).await?;
+        // One write, Nagle off. Writing head and body separately let Nagle hold
+        // the body until the bulb ACKed the head, and the firmware delays that
+        // ACK by ~200 ms: every request paid ~200 ms extra (measured: median
+        // 380 ms -> see fx_probe `latency`).
+        let _ = stream.set_nodelay(true);
+        let mut packet = head.into_bytes();
+        packet.extend_from_slice(body);
+        stream.write_all(&packet).await?;
         stream.flush().await?;
 
         let mut buf: Vec<u8> = Vec::with_capacity(512);
